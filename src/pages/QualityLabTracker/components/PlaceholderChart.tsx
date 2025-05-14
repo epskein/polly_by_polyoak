@@ -352,7 +352,7 @@ export function DemoLineGraph() {
       {
         type: 'spline',
         name: "Last Year",
-        color: '#ff595e', // red
+        color: '#2ec4b6', // blue-green-thiel
         data: [40, 48, 55, 65, 70, 60, 66, 62, 58, 52, 49, 45],
       },
     ],
@@ -413,13 +413,13 @@ export function DemoBarChart() {
     },
     plotOptions: {
       bar: {
-        color: '#468ddd',
         borderRadius: 4,
         dataLabels: {
           enabled: true
         },
         groupPadding: 0.1
       }
+      
     },
     legend: {
       enabled: false
@@ -432,6 +432,13 @@ export function DemoBarChart() {
         type: 'bar',
         name: 'Outstanding Tasks',
         data: [12, 4, 10, 24, 2],
+        color: '#468ddd',
+      },
+      {
+        type: 'bar',
+        name: 'Overdue Tasks',
+        data: [3, 1, 6, 15, 0],
+        color: '#ff595e',
       },
     ],
   };

@@ -140,7 +140,7 @@ export function Analytics({ jobs }: AnalyticsProps) {
         </Card>
 
 
-        <Card title={"Outstanding Tasks by Assignee"}>
+        <Card title={"Outstanding/Overdue Tasks by Assignee"}>
           <div className="space-y-2">
             {/* Chart container with fixed height to preserve layout */}
             <div style={{ height: '300px', overflow: 'hidden', position: 'relative' }}>
