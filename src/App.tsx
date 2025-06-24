@@ -1,4 +1,4 @@
-import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router"
+import { Routes, Route, Navigate } from "react-router-dom"
 import SignIn from "./pages/AuthPages/SignIn"
 import SignUp from "./pages/AuthPages/SignUp"
 import NotFound from "./pages/OtherPage/NotFound"
@@ -21,11 +21,10 @@ import { ScrollToTop } from "./components/common/ScrollToTop"
 import Home from "./pages/Dashboard/Home"
 import InventoryTracker from "./pages/InventoryTracker/index"
 import { useAuthContext } from "./context/AuthContext"
-import { AuthProvider } from "./context/AuthContext"
 import Users from "./pages/UserManagement/users"
 import QualityLabTracker from "./pages/QualityLabTracker/index"
 
-function AppRoutes() {
+export default function App() {
   const { user, loading } = useAuthContext()
 
   if (loading) {
@@ -33,10 +32,10 @@ function AppRoutes() {
   }
 
   return (
-    <Router>
+    <>
       <ScrollToTop />
       <Routes>
-        {/* Auth Routes */}
+        <Route path="/signup" element={<SignUp />} />
         <Route path="/signin" element={user ? <Navigate to="/" /> : <SignIn />} />
 
         {/* Protected Routes */}
@@ -64,15 +63,7 @@ function AppRoutes() {
         {/* Fallback Route */}
         <Route path="*" element={<NotFound />} />
       </Routes>
-    </Router>
-  )
-}
-
-export default function App() {
-  return (
-    <AuthProvider>
-      <AppRoutes />
-    </AuthProvider>
+    </>
   )
 }
 

@@ -6,6 +6,11 @@ import {
   TableRow,
 } from "../ui/table";
 import Badge from "../ui/badge/Badge";
+import Image1 from "../../assets/images/product/4LrectangularDairycan.png";
+import Image2 from "../../assets/images/product/10Lpolypaildrum.png";
+import Image3 from "../../assets/images/product/500mLgenericSteri.png";
+import Image4 from "../../assets/images/product/40mmOilCap.png";
+import Image5 from "../../assets/images/product/38mm-industrial-cap.png";
 
 // Define the TypeScript interface for the table rows
 interface Product {
@@ -28,7 +33,7 @@ const tableData: Product[] = [
     category: "Dairy",
     price: "R2 785 000.00",
     status: "Delivered",
-    image: "/images/product/4LrectangularDairycan.png", // Replace with actual image URL
+    image: Image1,
   },
   {
     id: 2,
@@ -37,7 +42,7 @@ const tableData: Product[] = [
     category: "Industrial",
     price: "R879 000.00",
     status: "Pending",
-    image: "/images/product/10Lpolypaildrum.png", // Replace with actual image URL
+    image: Image2,
   },
   {
     id: 3,
@@ -46,7 +51,7 @@ const tableData: Product[] = [
     category: "Dairy",
     price: "R467 830.00",
     status: "Delivered",
-    image: "/images/product/500mLgenericSteri.png", // Replace with actual image URL
+    image: Image3,
   },
   {
     id: 4,
@@ -55,7 +60,7 @@ const tableData: Product[] = [
     category: "Closures",
     price: "R120 300.00",
     status: "Pending",
-    image: "/images/product/40mmOilCap.png", // Replace with actual image URL
+    image: Image4,
   },
   {
     id: 5,
@@ -64,7 +69,7 @@ const tableData: Product[] = [
     category: "Closures",
     price: "R320 222.00",
     status: "Delivered",
-    image: "/images/product/38mm-industrial-cap.png", // Replace with actual image URL
+    image: Image5,
   },
 ];
 
