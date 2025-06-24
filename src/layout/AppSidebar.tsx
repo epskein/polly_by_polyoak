@@ -170,7 +170,7 @@ function AppSidebar() {
       <div className="flex items-center justify-between gap-2 px-6 py-5.5 lg:py-6.5">
         {(isExpanded || isMobileOpen) && (
           <Link to="/">
-            <Logo width={200} height={300} />
+            <Logo width={200} height={180} />
           </Link>
         )}
 

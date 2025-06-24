@@ -1,156 +1,244 @@
 "use client"
 
+import Highcharts from "highcharts"
+import HighchartsReact from "highcharts-react-official"
+
 import Card from "../../../components/common/ComponentCard"
-import CardContent from "../../../components/common/ComponentCard"
 import type { Job } from "../types/job"
-import { subMonths, isAfter, startOfYear, isWithinInterval, parseISO } from "date-fns"
-import { PlaceholderBarChart, PlaceholderBarChart2, PlaceholderBarChart3, PlaceholderPieChart, PlaceholderPieChart2, PlaceholderPieChart3, DemoLineGraph, DemoBarChart, DemoBarChart2, DemoBarChart3 } from "./PlaceholderChart"; // adjust path if needed
-
-
+import {
+  subMonths,
+  isAfter,
+  startOfYear,
+  isWithinInterval,
+  parseISO,
+  subYears,
+  endOfYear,
+} from "date-fns"
+import {
+  DemoBarChart,
+  DemoBarChart2,
+  DemoBarChart3,
+  DemoLineGraph,
+} from "./PlaceholderChart" // adjust path if needed
 
 interface AnalyticsProps {
   jobs: Job[]
+}
+
+interface DivisionsPieChartProps {
+  data: {
+    name: string
+    y: number
+    z: number
+  }[]
+}
+
+function DivisionsPieChart({ data }: DivisionsPieChartProps) {
+  const options: Highcharts.Options = {
+    chart: {
+      type: "variablepie",
+      height: 300,
+      style: {
+        fontFamily: `Outfit, sans-serif`,
+      },
+      backgroundColor: "transparent",
+    },
+    title: {
+      text: "",
+    },
+    tooltip: {
+      headerFormat: "",
+      pointFormat:
+        '<span style="color:{point.color}">\u25CF</span> <b> {point.name}</b><br/>' +
+        "Outstanding Tasks: <b>{point.y}</b><br/>" +
+        "Percentage: <b>{point.z:.1f}%</b><br/>",
+    },
+    series: [
+      {
+        type: "variablepie",
+        name: "Divisions",
+        minPointSize: 10,
+        innerSize: "20%",
+        zMin: 0,
+        borderRadius: 5,
+        size: "100%",
+        dataLabels: {
+          enabled: true,
+          format: "{point.name}",
+          style: {
+            color: "#000000",
+            textAlign: "center",
+            fontSize: "10px",
+            fontWeight: "normal",
+            textOutline: "none",
+          },
+        },
+        data: data,
+        colors: [
+          "#1b98e0",
+          "#00a8e8",
+          "#007ea7",
+          "#005377",
+          "#ff595e",
+          "#2ec4b6",
+          "#0f4c5c",
+        ],
+      },
+    ],
+    credits: {
+      enabled: false,
+    },
+  }
+
+  return <HighchartsReact highcharts={Highcharts} options={options} />
 }
 
 export function Analytics({ jobs }: AnalyticsProps) {
   // Get current date and calculate date ranges
   const now = new Date()
   const oneMonthAgo = subMonths(now, 1)
-  const yearStart = startOfYear(now)
+  const currentYearStart = startOfYear(now)
+  const lastYearStart = startOfYear(subYears(now, 1))
+  const lastYearEnd = endOfYear(subYears(now, 1))
+
+  // Filter tasks created this year to date
+  const tasksThisYear = jobs.filter(job => {
+    if (!job.created_at) return false
+    const createdDate = parseISO(job.created_at)
+    return isWithinInterval(createdDate, { start: currentYearStart, end: now })
+  })
+
+  // Filter tasks created last year
+  const tasksLastYear = jobs.filter(job => {
+    if (!job.created_at) return false
+    const createdDate = parseISO(job.created_at)
+    return isWithinInterval(createdDate, { start: lastYearStart, end: lastYearEnd })
+  })
+
+  // Filter completed tasks
+  const completedTasks = jobs.filter(job => job.job_status?.description === "Completed")
 
   // Filter completed tasks in the last month
-  const completedLastMonth = jobs.filter((job) => {
+  const completedLastMonth = jobs.filter(job => {
     if (job.job_status?.description !== "Completed" || !job.completion_date) return false
-    try {
-      const completedDate = parseISO(job.completion_date)
-      return isAfter(completedDate, oneMonthAgo)
-    } catch (error) {
-      console.error("Error parsing completionDate:", error)
-      return false
-    }
+    return isAfter(job.completion_date, oneMonthAgo)
   })
 
   // Filter completed tasks in the year to date
-  const completedYearToDate = jobs.filter((job) => {
+  const completedYearToDate = jobs.filter(job => {
     if (job.job_status?.description !== "Completed" || !job.completion_date) return false
-    try {
-      const completedDate = parseISO(job.completion_date)
-      return isWithinInterval(completedDate, { start: yearStart, end: now })
-    } catch (error) {
-      console.error("Error parsing completionDate:", error)
-      return false
-    }
+    return isWithinInterval(job.completion_date, { start: currentYearStart, end: now })
   })
 
   // Filter outstanding tasks (not completed)
-  const outstandingTasks = jobs.filter((job) => job.job_status?.description !== "Completed")
+  const outstandingTasks = jobs.filter(job => job.job_status?.description !== "Completed")
+
+  // Calculate percentages
+  const totalJobs = jobs.length
+  const completedPercentage =
+    totalJobs > 0 ? Math.round((completedTasks.length / totalJobs) * 100) : 0
+  const outstandingPercentage =
+    totalJobs > 0 ? Math.round((outstandingTasks.length / totalJobs) * 100) : 0
+
+  const totalOutstanding = outstandingTasks.length
+
+  const outstandingByDivision = outstandingTasks.reduce(
+    (acc, job) => {
+      const divisionName = job.production_plant?.name || "Unassigned"
+      acc[divisionName] = (acc[divisionName] || 0) + 1
+      return acc
+    },
+    {} as Record<string, number>,
+  )
+
+  const divisionsPieData = Object.entries(outstandingByDivision).map(([name, count]) => ({
+    name: name,
+    y: count,
+    z: totalOutstanding > 0 ? (count / totalOutstanding) * 100 : 0,
+  }))
 
   // Group by analyst (assignedTo)
   const completedByAnalyst = groupBy(completedLastMonth, "assignedTo")
   const outstandingByAnalyst = groupBy(outstandingTasks, "assignedTo")
 
-  // Group by division
-  const completedByDivision = groupBy(completedLastMonth, "division")
-  const outstandingByDivision = groupBy(outstandingTasks, "division")
-
   // Group by requestor
-  const completedByRequestor = groupBy(completedYearToDate, "requestor")
-  const outstandingByRequestor = groupBy(outstandingTasks, "requestor")
+  const completedByRequestor = groupBy(completedYearToDate, "requestor", "name")
+  const outstandingByRequestor = groupBy(outstandingTasks, "requestor", "name")
 
   return (
     <div>
       <div className="flex justify-between gap-4 p-4">
         {/* Tasks this year to date */}
-        <div className="flex-1 bg-gray-50 p-4 rounded-xl shadow-sm">
+        <div className="flex-1 rounded-xl bg-gray-50 p-4 shadow-sm">
           <p className="text-sm text-gray-500">Tasks This Year to Date</p>
-          <p className="text-2xl font-bold text-gray-800">1,245</p>
+          <p className="text-2xl font-bold text-gray-800">{tasksThisYear.length}</p>
         </div>
 
         {/* Tasks last year */}
-        <div className="flex-1 bg-gray-50 p-4 rounded-xl shadow-sm">
+        <div className="flex-1 rounded-xl bg-gray-50 p-4 shadow-sm">
           <p className="text-sm text-gray-500">Tasks Last Year</p>
-          <p className="text-2xl font-bold text-gray-800">980</p>
+          <p className="text-2xl font-bold text-gray-800">{tasksLastYear.length}</p>
         </div>
 
         {/* Completed Tasks */}
-        <div className="flex-1 bg-green-50 p-4 rounded-xl shadow-sm">
+        <div className="flex-1 rounded-xl bg-green-50 p-4 shadow-sm">
           <p className="text-sm text-gray-500">Completed Tasks</p>
           <div className="flex items-baseline justify-between">
-            <p className="text-2xl font-bold text-green-700">875</p>
-            <p className="text-sm text-green-600">87%</p>
+            <p className="text-2xl font-bold text-green-700">{completedTasks.length}</p>
+            <p className="text-sm text-green-600">{completedPercentage}%</p>
           </div>
         </div>
 
         {/* Outstanding Tasks */}
-        <div className="flex-1 bg-red-50 p-4 rounded-xl shadow-sm">
+        <div className="flex-1 rounded-xl bg-red-50 p-4 shadow-sm">
           <p className="text-sm text-gray-500">Outstanding Tasks</p>
           <div className="flex items-baseline justify-between">
-            <p className="text-2xl font-bold text-red-700">130</p>
-            <p className="text-sm text-red-600">13%</p>
+            <p className="text-2xl font-bold text-red-700">{outstandingTasks.length}</p>
+            <p className="text-sm text-red-600">{outstandingPercentage}%</p>
           </div>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-        {/* Pie Charts - Simplified as basic cards with data */}
-        {/* <Card title={"Completed Tasks by Analyst"} >
-          <p className="text-sm text-muted-foreground">Last month</p>
-        
-          <div className="space-y-2">
-          <PlaceholderPieChart />
-            {Object.entries(completedByAnalyst).map(([name, items]) => (
-              <div key={name} className="flex justify-between items-center">
-                <span>{name || "Unassigned"}</span>
-                <span className="font-semibold"></span>
-              </div>
-            ))}
-            {Object.keys(completedByAnalyst).length === 0 && (
-              <div className="text-center text-muted-foreground py-4">No data available</div>
-            )}
-          </div>
-      </Card> */}
+      <div className="grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-3">
         <div className="lg:col-span-2">
-
-          <Card title={"No. of Tasks (Current Year VS Prev. Year)"} >
+          <Card title={"No. of Tasks (Current Year VS Prev. Year)"}>
             <div className="space-y-2">
-              <div style={{ height: '300px', overflow: 'hidden', position: 'relative' }}>
+              <div style={{ height: "300px", overflow: "hidden", position: "relative" }}>
                 <div
                   style={{
-                    transform: 'scale(0.8)',
-                    transformOrigin: 'top left',
-                    width: '125%',
-                    height: '125%',
-                    position: 'absolute',
+                    transform: "scale(0.8)",
+                    transformOrigin: "top left",
+                    width: "125%",
+                    height: "125%",
+                    position: "absolute",
                     top: 0,
                     left: 0,
                   }}
                 >
                   <DemoLineGraph />
-
                 </div>
               </div>
             </div>
           </Card>
         </div>
 
-        <Card title={"Outstanding Tasks by Division"} >
+        <Card title={"Outstanding Tasks by Division"}>
           <div className="space-y-2">
-            <PlaceholderPieChart2 />
+            <DivisionsPieChart data={divisionsPieData} />
           </div>
         </Card>
-
 
         <Card title={"Outstanding/Overdue Tasks by Assignee"}>
           <div className="space-y-2">
             {/* Chart container with fixed height to preserve layout */}
-            <div style={{ height: '300px', overflow: 'hidden', position: 'relative' }}>
+            <div style={{ height: "300px", overflow: "hidden", position: "relative" }}>
               <div
                 style={{
-                  transform: 'scale(0.8)',
-                  transformOrigin: 'top left',
-                  width: '125%',
-                  height: '125%',
-                  position: 'absolute',
+                  transform: "scale(0.8)",
+                  transformOrigin: "top left",
+                  width: "125%",
+                  height: "125%",
+                  position: "absolute",
                   top: 0,
                   left: 0,
                 }}
@@ -164,14 +252,14 @@ export function Analytics({ jobs }: AnalyticsProps) {
         <Card title={"Tasks by Requestor"}>
           <div className="space-y-2">
             {/* Chart container with fixed height to preserve layout */}
-            <div style={{ height: '300px', overflow: 'hidden', position: 'relative' }}>
+            <div style={{ height: "300px", overflow: "hidden", position: "relative" }}>
               <div
                 style={{
-                  transform: 'scale(0.8)',
-                  transformOrigin: 'top left',
-                  width: '125%',
-                  height: '125%',
-                  position: 'absolute',
+                  transform: "scale(0.8)",
+                  transformOrigin: "top left",
+                  width: "125%",
+                  height: "125%",
+                  position: "absolute",
                   top: 0,
                   left: 0,
                 }}
@@ -185,14 +273,14 @@ export function Analytics({ jobs }: AnalyticsProps) {
         <Card title={"Tasks by Priority"}>
           <div className="space-y-2">
             {/* Chart container with fixed height to preserve layout */}
-            <div style={{ height: '300px', overflow: 'hidden', position: 'relative' }}>
+            <div style={{ height: "300px", overflow: "hidden", position: "relative" }}>
               <div
                 style={{
-                  transform: 'scale(0.8)',
-                  transformOrigin: 'top left',
-                  width: '125%',
-                  height: '125%',
-                  position: 'absolute',
+                  transform: "scale(0.8)",
+                  transformOrigin: "top left",
+                  width: "125%",
+                  height: "125%",
+                  position: "absolute",
                   top: 0,
                   left: 0,
                 }}
@@ -202,20 +290,26 @@ export function Analytics({ jobs }: AnalyticsProps) {
             </div>
           </div>
         </Card>
-
-
       </div>
     </div>
-
-
   )
 }
 
 // Helper function
-function groupBy(array: any[], key: string) {
+function groupBy(array: any[], key: string, nestedKey?: string) {
   return array.reduce((result, item) => {
-    const groupKey = item[key] || "Unassigned"
-    result[groupKey] = result[groupKey] || []
+    let groupKey: string
+    if (nestedKey && item[key] && typeof item[key] === "object") {
+      groupKey = item[key][nestedKey] || "Unassigned"
+    } else {
+      // Fallback for non-nested or simple properties
+      groupKey = item[key] || "Unassigned"
+    }
+
+    // Ensure the key exists in the result object
+    if (!result[groupKey]) {
+      result[groupKey] = []
+    }
     result[groupKey].push(item)
     return result
   }, {})
