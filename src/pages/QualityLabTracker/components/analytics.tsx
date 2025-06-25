@@ -118,7 +118,7 @@ function AssigneeTasksChart({
       categories,
       labels: {
         style: {
-          color: "#A1A1AA", // zinc-400
+          color: "#161310", // zinc-400
         },
       },
     },
@@ -127,19 +127,19 @@ function AssigneeTasksChart({
       title: {
         text: "Number of Tasks",
         style: {
-          color: "#A1A1AA", // zinc-400
+          color: "#161310", // zinc-400
         },
       },
       labels: {
         style: {
-          color: "#A1A1AA", // zinc-400
+          color: "#161310", // zinc-400
         },
       },
-      gridLineColor: "#3F3F46", // zinc-700
+      gridLineColor: "#e0e3e6", // zinc-700
     },
     legend: {
       itemStyle: {
-        color: "#A1A1AA", // zinc-400
+        color: "#161310", // zinc-400
       },
     },
     plotOptions: {
@@ -185,13 +185,13 @@ function RequestorTotalTasksChart({ categories, data }: RequestorTotalTasksChart
     title: { text: "" },
     xAxis: {
       categories: categories,
-      labels: { style: { color: "#A1A1AA" } },
+      labels: { style: { color: "#161310" } },
     },
     yAxis: {
       min: 0,
-      title: { text: "Number of Tasks", style: { color: "#A1A1AA" } },
-      labels: { style: { color: "#A1A1AA" } },
-      gridLineColor: "#3F3F46",
+      title: { text: "Number of Tasks", style: { color: "#161310" } },
+      labels: { style: { color: "#161310" } },
+      gridLineColor: "#e0e3e6",
       tickInterval: 1, // Ensures gridlines are shown even for 0 values
     },
     legend: { enabled: false },
@@ -209,6 +209,75 @@ function RequestorTotalTasksChart({ categories, data }: RequestorTotalTasksChart
         name: "Tasks",
         type: "bar",
         data: data,
+      },
+    ],
+    credits: { enabled: false },
+  }
+  return <HighchartsReact highcharts={Highcharts} options={options} />
+}
+
+interface YearlyComparisonLineChartProps {
+  currentYearData: number[]
+  lastYearData: number[]
+  currentYear: number
+  lastYear: number
+}
+
+function YearlyComparisonLineChart({
+  currentYearData,
+  lastYearData,
+  currentYear,
+  lastYear,
+}: YearlyComparisonLineChartProps) {
+  const options: Highcharts.Options = {
+    chart: {
+      type: "spline",
+      height: 300,
+      backgroundColor: "transparent",
+      style: {
+        fontFamily: `Outfit, sans-serif`,
+      },
+    },
+    title: { text: "" },
+    xAxis: {
+      categories: [
+        "Jan",
+        "Feb",
+        "Mar",
+        "Apr",
+        "May",
+        "Jun",
+        "Jul",
+        "Aug",
+        "Sep",
+        "Oct",
+        "Nov",
+        "Dec",
+      ],
+      labels: { style: { color: "#161310" } },
+    },
+    yAxis: {
+      title: { text: "Number of Tasks", style: { color: "#161310" } },
+      labels: { style: { color: "#161310" } },
+      gridLineColor: "#e0e3e6",
+    },
+    legend: {
+      itemStyle: {
+        color: "#161310",
+      },
+    },
+    series: [
+      {
+        name: `Current Year (${currentYear})`,
+        type: "spline",
+        data: currentYearData,
+        color: "#3b82f6",
+      },
+      {
+        name: `Last Year (${lastYear})`,
+        type: "spline",
+        data: lastYearData,
+        color: "#ef4444",
       },
     ],
     credits: { enabled: false },
@@ -328,6 +397,20 @@ export function Analytics({ jobs }: AnalyticsProps) {
   const completedByRequestor = groupBy(completedYearToDate, "requestor", "name")
   const outstandingByRequestor = groupBy(outstandingTasks, "requestor", "name")
 
+  const getMonthlyCounts = (tasks: Job[]): number[] => {
+    const monthlyCounts = Array(12).fill(0)
+    for (const task of tasks) {
+      if (task.created_at) {
+        const month = new Date(task.created_at).getMonth()
+        monthlyCounts[month]++
+      }
+    }
+    return monthlyCounts
+  }
+
+  const currentYearData = getMonthlyCounts(tasksThisYear)
+  const lastYearData = getMonthlyCounts(tasksLastYear)
+
   return (
     <div>
       <div className="flex justify-between gap-4 p-4">
@@ -365,22 +448,13 @@ export function Analytics({ jobs }: AnalyticsProps) {
       <div className="grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-3">
         <div className="lg:col-span-2">
           <Card title={"No. of Tasks (Current Year VS Prev. Year)"}>
-            <div className="space-y-2">
-              <div style={{ height: "300px", overflow: "hidden", position: "relative" }}>
-                <div
-                  style={{
-                    transform: "scale(0.8)",
-                    transformOrigin: "top left",
-                    width: "125%",
-                    height: "125%",
-                    position: "absolute",
-                    top: 0,
-                    left: 0,
-                  }}
-                >
-                  <DemoLineGraph />
-                </div>
-              </div>
+            <div className="h-[350px] space-y-2">
+              <YearlyComparisonLineChart
+                currentYearData={currentYearData}
+                lastYearData={lastYearData}
+                currentYear={now.getFullYear()}
+                lastYear={now.getFullYear() - 1}
+              />
             </div>
           </Card>
         </div>
@@ -405,19 +479,7 @@ export function Analytics({ jobs }: AnalyticsProps) {
           <div className="space-y-2">
             {/* Chart container with fixed height to preserve layout */}
             <div style={{ height: "300px", overflow: "hidden", position: "relative" }}>
-              <div
-                style={{
-                  transform: "scale(0.8)",
-                  transformOrigin: "top left",
-                  width: "125%",
-                  height: "125%",
-                  position: "absolute",
-                  top: 0,
-                  left: 0,
-                }}
-              >
-                <DemoBarChart2 />
-              </div>
+               <RequestorTotalTasksChart categories={requestorCategories} data={requestorData} />
             </div>
           </div>
         </Card>
@@ -443,11 +505,7 @@ export function Analytics({ jobs }: AnalyticsProps) {
           </div>
         </Card>
 
-        <Card title={"No. of Tasks by Requestor (Year to Date)"}>
-          <div className="h-[350px] space-y-2">
-            <RequestorTotalTasksChart categories={requestorCategories} data={requestorData} />
-          </div>
-        </Card>
+        
       </div>
     </div>
   )
