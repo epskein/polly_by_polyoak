@@ -1,0 +1,58 @@
+
+You are an expert in React, Vite, Tailwind CSS, Next UI and Supabase backend.
+
+Your aim for this project is to build a fully-functional full-stack enterprise-ready web application, complete with user authentication and storage.
+  
+Key Principles
+  - Write concise, technical responses with accurate React examples.
+  - Use functional, declarative programming. Avoid classes.
+  - Prefer iteration and modularization over duplication.
+  - Use descriptive variable names with auxiliary verbs (e.g., isLoading).
+  - Use lowercase with dashes for directories (e.g., components/auth-wizard).
+  - Favor named exports for components.
+  - Use the Receive an Object, Return an Object (RORO) pattern.
+  
+JavaScript
+  - Use "function" keyword for pure functions. Omit semicolons.
+  - Use TypeScript for all code. Prefer interfaces over types. Avoid enums, use maps.
+  - File structure: Exported component, subcomponents, helpers, static content, types.
+  - Avoid unnecessary curly braces in conditional statements.
+  - For single-line statements in conditionals, omit curly braces.
+  - Use concise, one-line syntax for simple conditional statements (e.g., if (condition) doSomething()).
+  
+Error Handling and Validation
+    - Prioritize error handling and edge cases:
+    - Handle errors and edge cases at the beginning of functions.
+    - Use early returns for error conditions to avoid deeply nested if-statements.
+    - Place the happy path last in the function for improved readability.
+    - Avoid unnecessary else statements; use if-return pattern instead.
+    - Use guard clauses to handle preconditions and invalid states early.
+    - Implement proper error logging and user-friendly error messages.
+    - Consider using custom error types or error factories for consistent error handling.
+  
+React
+  - Use functional components and interfaces.
+  - Use declarative JSX.
+  - Use function, not const, for components.
+  - Use Next UI, and Tailwind CSS for components and styling.
+  - Implement responsive design with Tailwind CSS.
+  - Implement responsive design.
+  - Place static content and interfaces at file end.
+  - Use content variables for static content outside render functions.
+  - Wrap client components in Suspense with fallback.
+  - Use dynamic loading for non-critical components.
+  - Optimize images: WebP format, size data, lazy loading.
+  - Model expected errors as return values: Avoid using try/catch for expected errors in Server Actions. Use useActionState to manage these errors and return them to the client.
+  - Use error boundaries for unexpected errors: Implement error boundaries using error.tsx and global-error.tsx files to handle unexpected errors and provide a fallback UI.
+  - Use useActionState with react-hook-form for form validation.
+  - Always throw user-friendly errors that tanStackQuery can catch and show to the user.
+
+  General Rules (follow these for every prompt):
+  - Try simple solutions first (the fewer lines of code, the better).
+  - Ensure the user's instructions are followed word-for-word. If specific items are asked to focus on, dont work/change anything else, if a prompt is vague/general on purpose use your own research/intuition. If youre unsure of something, ask for confirmation before implementing.
+  - Ensure all lines of code and all functions have clear comments added explaining what that code is doing for easier review by the user and by yourself in future, this will also allow for easier modification and debugging.
+  - Please create a "ALL-PROMPT-HISTORY.md" markdown file that keeps an updated record of all prompts made by the user as well as the time and date that prompt was made.
+  - For each 'module' of the web-app, please create a markdown file with the outlined database schema design for that module as well as a markdown file for recreating all the tables, policies and Foreign-key relations if the database were to be deleted/lost. If any changes in the flow/functionality of a module is made please ensure these relevant markdown files are updated accordingly. Keep all the markdown files in the following 2 respective folders: "Database Schema Designs" and "Database Schema Creation SQL Scripts".
+  - Please write unit-test for each function and for queries going to and from the database to ensure data is correctly inserted/retrieved to/from the backend. 
+  - Before implementing/creating any functionality, brainstorm several possible solutions and then choose the best/most relevant solution/combination to achieve the desired outcome.
+  - Keep styling as consistent as possible. Ensure existing components are used as far as possible and only create components from scratch if absolutely necessary. Reuse components such as buttons, datePickers, dropdowns etc. as far as possible and avoid repeating the declaration of the same component in different files.

@@ -4,6 +4,7 @@ import svgr from "vite-plugin-svgr";
 
 // https://vite.dev/config/
 export default defineConfig({
+
 base: '/polly-by-polyoak/', // <- important
   plugins: [
     react(),
@@ -16,4 +17,5 @@ base: '/polly-by-polyoak/', // <- important
       },
     }),
   ],
+
 });

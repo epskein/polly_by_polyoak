@@ -1,7 +1,9 @@
-import { useCallback, useEffect, useRef, useState } from "react";
-import { Link, useLocation } from "react-router";
+import { useCallback, useEffect, useRef, useState } from 'react'
+import { Link, useLocation } from 'react-router-dom'
+import { useSidebar } from '../context/SidebarContext'
+import { Logo } from '../components/common/Logo'
+import SidebarLink from './SidebarLink'
 
-// Assume these icons are imported from an icon library
 import {
   BoxCubeIcon,
   CalenderIcon,
@@ -11,392 +13,226 @@ import {
   ListIcon,
   PageIcon,
   PieChartIcon,
-  PlugInIcon,
   TableIcon,
   UserCircleIcon,
-} from "../icons";
-import { useSidebar } from "../context/SidebarContext";
-import { FormInputIcon, User2Icon } from "lucide-react";
+  UserIcon,
+  FormInputIcon,
+  PlugInIcon,
+} from '../icons'
 
 type NavItem = {
-  name: string;
-  icon: React.ReactNode;
-  path?: string;
-  subItems?: { name: string; path: string; pro?: boolean; new?: boolean }[];
-};
+  name: string
+  icon: React.ReactNode
+  path?: string
+  subItems?: { name: string; path: string; pro?: boolean; new?: boolean }[]
+}
 
 const navItems: NavItem[] = [
   {
     icon: <GridIcon />,
-    name: "Dashboard",
-    subItems: [{ name: "Ecommerce", path: "/", pro: false }],
+    name: 'Dashboard',
+    subItems: [{ name: 'Ecommerce', path: '/', pro: false }],
   },
   {
-    name: "User Management",
-    icon: <User2Icon />,
+    name: 'User Management',
+    icon: <UserIcon />,
     subItems: [
-      { name: "All Users", path: "/users" },
-      { name: "User Role Config", path: "/error-404", pro: false },
+      { name: 'All Users', path: '/users' },
+      { name: 'User Role Config', path: '/error-404', pro: false },
     ],
   },
- 
+
   {
     icon: <CalenderIcon />,
-    name: "Calendar",
-    path: "/calendar",
+    name: 'Calendar',
+    path: '/calendar',
   },
   {
     icon: <UserCircleIcon />,
-    name: "User Profile",
-    path: "/profile",
+    name: 'User Profile',
+    path: '/profile',
   },
   {
-    icon: <BoxCubeIcon />, // Choose an appropriate icon for inventory
-    name: "Inventory Tracker",
-    path: "/inventory-tracker", // Must match the route in App.tsx
+    icon: <BoxCubeIcon />,
+    name: 'Inventory Tracker',
+    path: '/inventory-tracker',
   },
   {
-    icon: <ListIcon />, // Using the same icon as Forms
-    name: "Quality Lab Job Tracker",
-    path: "/quality-lab-tracker", // New path for the Quality Lab Tracker
-  },
-  {
-    icon: <FormInputIcon />, // Choose an appropriate icon for inventory
-    name: "Digital Forms",
-    path: "/digital-forms", // Must match the route in App.tsx
-  },
-  {
-    name: "Forms",
     icon: <ListIcon />,
-    subItems: [{ name: "Form Elements", path: "/form-elements", pro: false }],
+    name: 'Quality Lab Job Tracker',
+    path: '/quality-lab-tracker',
   },
   {
-    name: "Tables",
+    icon: <FormInputIcon />,
+    name: 'Digital Forms',
+    path: '/digital-forms',
+  },
+  {
+    name: 'Forms',
+    icon: <ListIcon />,
+    subItems: [{ name: 'Form Elements', path: '/form-elements', pro: false }],
+  },
+  {
+    name: 'Tables',
     icon: <TableIcon />,
-    subItems: [{ name: "Basic Tables", path: "/basic-tables", pro: false }],
+    subItems: [{ name: 'Basic Tables', path: '/basic-tables', pro: false }],
   },
   {
-    name: "Pages",
+    name: 'Pages',
     icon: <PageIcon />,
     subItems: [
-      { name: "Blank Page", path: "/blank", pro: false },
-      { name: "404 Error", path: "/error-404", pro: false },
+      { name: 'Blank Page', path: '/blank', pro: false },
+      { name: '404 Error', path: '/error-404', pro: false },
     ],
   },
-];
+]
 
 const othersItems: NavItem[] = [
   {
     icon: <PieChartIcon />,
-    name: "Charts",
+    name: 'Charts',
     subItems: [
-      { name: "Line Chart", path: "/line-chart", pro: false },
-      { name: "Bar Chart", path: "/bar-chart", pro: false },
-      { name: "Pie Chart", path: "/pie-chart", pro: false },
+      { name: 'Line Chart', path: '/line-chart', pro: false },
+      { name: 'Bar Chart', path: '/bar-chart', pro: false },
+      { name: 'Pie Chart', path: '/pie-chart', pro: false },
     ],
   },
   {
     icon: <BoxCubeIcon />,
-    name: "UI Elements",
+    name: 'UI Elements',
     subItems: [
-      { name: "Alerts", path: "/alerts", pro: false },
-      { name: "Avatar", path: "/avatars", pro: false },
-      { name: "Badge", path: "/badge", pro: false },
-      { name: "Buttons", path: "/buttons", pro: false },
-      { name: "Images", path: "/images", pro: false },
-      { name: "Videos", path: "/videos", pro: false },
+      { name: 'Alerts', path: '/alerts', pro: false },
+      { name: 'Avatar', path: '/avatars', pro: false },
+      { name: 'Badge', path: '/badge', pro: false },
+      { name: 'Buttons', path: '/buttons', pro: false },
+      { name: 'Images', path: '/images', pro: false },
+      { name: 'Videos', path: '/videos', pro: false },
     ],
   },
   {
     icon: <PlugInIcon />,
-    name: "Authentication",
+    name: 'Authentication',
     subItems: [
-      { name: "Sign In", path: "/signin", pro: false },
-      { name: "Sign Up", path: "/signup", pro: false },
+      { name: 'Sign In', path: '/signin', pro: false },
+      { name: 'Sign Up', path: '/signup', pro: false },
     ],
   },
-];
+]
 
-const AppSidebar: React.FC = () => {
-  const { isExpanded, isMobileOpen, isHovered, setIsHovered } = useSidebar();
-  const location = useLocation();
+function AppSidebar() {
+  const location = useLocation()
+  const { pathname } = location
 
-  const [openSubmenu, setOpenSubmenu] = useState<{
-    type: "main" | "others";
-    index: number;
-  } | null>(null);
-  const [subMenuHeight, setSubMenuHeight] = useState<Record<string, number>>(
-    {}
-  );
-  const subMenuRefs = useRef<Record<string, HTMLDivElement | null>>({});
+  const {
+    isExpanded,
+    toggleSidebar,
+    isMobileOpen,
+    setIsHovered,
+  } = useSidebar()
+  const trigger = useRef<HTMLButtonElement>(null)
+  const sidebar = useRef<HTMLDivElement>(null)
 
-  // const isActive = (path: string) => location.pathname === path;
-  const isActive = useCallback(
-    (path: string) => location.pathname === path,
-    [location.pathname]
-  );
+  const handleMouseEnter = useCallback(() => {
+    if (!isExpanded) {
+      setIsHovered(true)
+    }
+  }, [isExpanded, setIsHovered])
+
+  const handleMouseLeave = useCallback(() => {
+    setIsHovered(false)
+  }, [setIsHovered])
 
   useEffect(() => {
-    let submenuMatched = false;
-    ["main", "others"].forEach((menuType) => {
-      const items = menuType === "main" ? navItems : othersItems;
-      items.forEach((nav, index) => {
-        if (nav.subItems) {
-          nav.subItems.forEach((subItem) => {
-            if (isActive(subItem.path)) {
-              setOpenSubmenu({
-                type: menuType as "main" | "others",
-                index,
-              });
-              submenuMatched = true;
-            }
-          });
-        }
-      });
-    });
-
-    if (!submenuMatched) {
-      setOpenSubmenu(null);
-    }
-  }, [location, isActive]);
-
-  useEffect(() => {
-    if (openSubmenu !== null) {
-      const key = `${openSubmenu.type}-${openSubmenu.index}`;
-      if (subMenuRefs.current[key]) {
-        setSubMenuHeight((prevHeights) => ({
-          ...prevHeights,
-          [key]: subMenuRefs.current[key]?.scrollHeight || 0,
-        }));
-      }
-    }
-  }, [openSubmenu]);
-
-  const handleSubmenuToggle = (index: number, menuType: "main" | "others") => {
-    setOpenSubmenu((prevOpenSubmenu) => {
+    const clickHandler = (event: MouseEvent) => {
+      if (!sidebar.current || !trigger.current) return
       if (
-        prevOpenSubmenu &&
-        prevOpenSubmenu.type === menuType &&
-        prevOpenSubmenu.index === index
-      ) {
-        return null;
-      }
-      return { type: menuType, index };
-    });
-  };
+        !isMobileOpen ||
+        sidebar.current.contains(event.target as Node) ||
+        trigger.current.contains(event.target as Node)
+      )
+        return
 
-  const renderMenuItems = (items: NavItem[], menuType: "main" | "others") => (
-    <ul className="flex flex-col gap-4">
-      {items.map((nav, index) => (
-        <li key={nav.name}>
-          {nav.subItems ? (
-            <button
-              onClick={() => handleSubmenuToggle(index, menuType)}
-              className={`menu-item group ${
-                openSubmenu?.type === menuType && openSubmenu?.index === index
-                  ? "menu-item-active"
-                  : "menu-item-inactive"
-              } cursor-pointer ${
-                !isExpanded && !isHovered
-                  ? "lg:justify-center"
-                  : "lg:justify-start"
-              }`}
-            >
-              <span
-                className={`menu-item-icon-size  ${
-                  openSubmenu?.type === menuType && openSubmenu?.index === index
-                    ? "menu-item-icon-active"
-                    : "menu-item-icon-inactive"
-                }`}
-              >
-                {nav.icon}
-              </span>
-              {(isExpanded || isHovered || isMobileOpen) && (
-                <span className="menu-item-text">{nav.name}</span>
-              )}
-              {(isExpanded || isHovered || isMobileOpen) && (
-                <ChevronDownIcon
-                  className={`ml-auto w-5 h-5 transition-transform duration-200 ${
-                    openSubmenu?.type === menuType &&
-                    openSubmenu?.index === index
-                      ? "rotate-180 text-brand-500"
-                      : ""
-                  }`}
-                />
-              )}
-            </button>
-          ) : (
-            nav.path && (
-              <Link
-                to={nav.path}
-                className={`menu-item group ${
-                  isActive(nav.path) ? "menu-item-active" : "menu-item-inactive"
-                }`}
-              >
-                <span
-                  className={`menu-item-icon-size ${
-                    isActive(nav.path)
-                      ? "menu-item-icon-active"
-                      : "menu-item-icon-inactive"
-                  }`}
-                >
-                  {nav.icon}
-                </span>
-                {(isExpanded || isHovered || isMobileOpen) && (
-                  <span className="menu-item-text">{nav.name}</span>
-                )}
-              </Link>
-            )
-          )}
-          {nav.subItems && (isExpanded || isHovered || isMobileOpen) && (
-            <div
-              ref={(el) => {
-                subMenuRefs.current[`${menuType}-${index}`] = el;
-              }}
-              className="overflow-hidden transition-all duration-300"
-              style={{
-                height:
-                  openSubmenu?.type === menuType && openSubmenu?.index === index
-                    ? `${subMenuHeight[`${menuType}-${index}`]}px`
-                    : "0px",
-              }}
-            >
-              <ul className="mt-2 space-y-1 ml-9">
-                {nav.subItems.map((subItem) => (
-                  <li key={subItem.name}>
-                    <Link
-                      to={subItem.path}
-                      className={`menu-dropdown-item ${
-                        isActive(subItem.path)
-                          ? "menu-dropdown-item-active"
-                          : "menu-dropdown-item-inactive"
-                      }`}
-                    >
-                      {subItem.name}
-                      <span className="flex items-center gap-1 ml-auto">
-                        {subItem.new && (
-                          <span
-                            className={`ml-auto ${
-                              isActive(subItem.path)
-                                ? "menu-dropdown-badge-active"
-                                : "menu-dropdown-badge-inactive"
-                            } menu-dropdown-badge`}
-                          >
-                            new
-                          </span>
-                        )}
-                        {subItem.pro && (
-                          <span
-                            className={`ml-auto ${
-                              isActive(subItem.path)
-                                ? "menu-dropdown-badge-active"
-                                : "menu-dropdown-badge-inactive"
-                            } menu-dropdown-badge`}
-                          >
-                            pro
-                          </span>
-                        )}
-                      </span>
-                    </Link>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          )}
-        </li>
-      ))}
-    </ul>
-  );
+      toggleSidebar() // Assuming this closes the mobile sidebar
+    }
+    document.addEventListener('click', clickHandler)
+    return () => document.removeEventListener('click', clickHandler)
+  }, [isMobileOpen, toggleSidebar])
 
   return (
     <aside
-      className={`fixed mt-16 flex flex-col lg:mt-0 top-0 px-5 left-0 bg-white dark:bg-gray-900 dark:border-gray-800 text-gray-900 h-screen transition-all duration-300 ease-in-out z-50 border-r border-gray-200 
-        ${
-          isExpanded || isMobileOpen
-            ? "w-[290px]"
-            : isHovered
-            ? "w-[290px]"
-            : "w-[90px]"
-        }
-        ${isMobileOpen ? "translate-x-0" : "-translate-x-full"}
-        lg:translate-x-0`}
-      onMouseEnter={() => !isExpanded && setIsHovered(true)}
-      onMouseLeave={() => setIsHovered(false)}
+      ref={sidebar}
+      onMouseEnter={handleMouseEnter}
+      onMouseLeave={handleMouseLeave}
+      className={`absolute left-0 top-0 z-[9999] flex h-screen w-72 flex-col overflow-y-hidden bg-white duration-300 ease-linear dark:bg-gray-900 lg:static lg:translate-x-0 ${
+        isMobileOpen ? 'translate-x-0' : '-translate-x-full'
+      } ${!isExpanded && 'lg:w-[90px]'}`}
     >
-      <div
-        className={`py-8 flex ${
-          !isExpanded && !isHovered ? "lg:justify-center" : "justify-start"
-        }`}
-      >
-        <Link to="/">
-          {isExpanded || isHovered || isMobileOpen ? (
-            <>
-              <img
-                className="dark:hidden"
-                src="/images/logo/polly_logo.svg"
-                alt="Logo"
-                width={150}
-                height={40}
-              />
-              <img
-                className="hidden dark:block"
-                src="/images/logo/polly_logo.svg"
-                alt="Logo"
-                width={150}
-                height={40}
-              />
-            </>
-          ) : (
-            <img
-              src="/images/logo/polly_logo.svg"
-              alt="Logo"
-              width={32}
-              height={32}
-            />
-          )}
-        </Link>
+      <div className="flex items-center justify-between gap-2 px-6 py-5.5 lg:py-6.5">
+        {(isExpanded || isMobileOpen) && (
+          <Link to="/">
+            <Logo width={200} height={180} />
+          </Link>
+        )}
+
+        <button
+          onClick={toggleSidebar}
+          className="hidden lg:block"
+          aria-label="Toggle Sidebar"
+        >
+          <ChevronDownIcon
+            className={`h-5 w-5 transform transition-transform ${
+              isExpanded ? 'rotate-180' : ''
+            }`}
+          />
+        </button>
+
+        {isMobileOpen && (
+          <button
+            ref={trigger}
+            onClick={toggleSidebar}
+            aria-controls="sidebar"
+            aria-expanded={isMobileOpen}
+            className="block lg:hidden"
+          >
+            {/* SVG for mobile toggle */}
+          </button>
+        )}
       </div>
-      <div className="flex flex-col overflow-y-auto duration-300 ease-linear no-scrollbar">
-        <nav className="mb-6">
-          <div className="flex flex-col gap-4">
-            <div>
-              <h2
-                className={`mb-4 text-xs uppercase flex leading-[20px] text-gray-400 ${
-                  !isExpanded && !isHovered
-                    ? "lg:justify-center"
-                    : "justify-start"
-                }`}
-              >
-                {isExpanded || isHovered || isMobileOpen ? (
-                  "Menu"
-                ) : (
-                  <HorizontaLDots className="size-6" />
-                )}
-              </h2>
-              {renderMenuItems(navItems, "main")}
-            </div>
-            <div className="">
-              <h2
-                className={`mb-4 text-xs uppercase flex leading-[20px] text-gray-400 ${
-                  !isExpanded && !isHovered
-                    ? "lg:justify-center"
-                    : "justify-start"
-                }`}
-              >
-                {isExpanded || isHovered || isMobileOpen ? (
-                  "Others"
-                ) : (
-                  <HorizontaLDots />
-                )}
-              </h2>
-              {renderMenuItems(othersItems, "others")}
-            </div>
+
+      <div className="no-scrollbar flex flex-col overflow-y-auto duration-300 ease-linear">
+        <nav className="mt-5 px-4 py-4 lg:mt-9 lg:px-6">
+          <div>
+            <h3
+              className={`mb-4 ml-4 text-sm font-semibold text-gray-500 dark:text-gray-400 ${
+                !isExpanded && 'hidden'
+              }`}
+            >
+              MENU
+            </h3>
+            <ul className="mb-6 flex flex-col gap-1.5">
+              {navItems.map((item, index) => (
+                <SidebarLink item={item} key={index} />
+              ))}
+            </ul>
+          </div>
+          <div>
+            <h3
+              className={`mb-4 ml-4 text-sm font-semibold text-gray-500 dark:text-gray-400 ${
+                !isExpanded && 'hidden'
+              }`}
+            >
+              OTHERS
+            </h3>
+            <ul className="mb-6 flex flex-col gap-1.5">
+              {othersItems.map((item, index) => (
+                <SidebarLink item={item} key={index} />
+              ))}
+            </ul>
           </div>
         </nav>
-        
       </div>
     </aside>
-  );
-};
+  )
+}
 
-export default AppSidebar;
+export default AppSidebar

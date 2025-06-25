@@ -1,7 +1,8 @@
 import React from "react";
 import GridShape from "../../components/common/GridShape";
-import { Link } from "react-router";
+import { Link } from "react-router-dom";
 import ThemeTogglerTwo from "../../components/common/ThemeTogglerTwo";
+import { Logo } from "../../components/common/Logo";
 
 export default function AuthLayout({
   children,
@@ -18,12 +19,7 @@ export default function AuthLayout({
             <GridShape />
             <div className="flex flex-col items-center max-w-s">
               <Link to="/" className="block mb-4">
-                <img
-                  width={350}
-                  height={48}
-                  src="/images/logo/polly_logo.svg"
-                  alt="Logo"
-                />
+                <Logo width={450} height={500} />
               </Link>
               <p className="text-4xl font-bold text-white">
                 Welcome to POLLY!
