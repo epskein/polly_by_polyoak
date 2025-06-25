@@ -169,6 +169,53 @@ function AssigneeTasksChart({
   return <HighchartsReact highcharts={Highcharts} options={options} />
 }
 
+interface RequestorTotalTasksChartProps {
+  categories: string[]
+  data: number[]
+}
+
+function RequestorTotalTasksChart({ categories, data }: RequestorTotalTasksChartProps) {
+  const options: Highcharts.Options = {
+    chart: {
+      type: "bar",
+      height: 300,
+      backgroundColor: "transparent",
+      style: { fontFamily: `Outfit, sans-serif` },
+    },
+    title: { text: "" },
+    xAxis: {
+      categories: categories,
+      labels: { style: { color: "#A1A1AA" } },
+    },
+    yAxis: {
+      min: 0,
+      title: { text: "Number of Tasks", style: { color: "#A1A1AA" } },
+      labels: { style: { color: "#A1A1AA" } },
+      gridLineColor: "#3F3F46",
+      tickInterval: 1, // Ensures gridlines are shown even for 0 values
+    },
+    legend: { enabled: false },
+    plotOptions: {
+      bar: {
+        dataLabels: {
+          enabled: true,
+          style: { textOutline: "none", color: "#FFFFFF" },
+        },
+        color: "#3b82f6",
+      },
+    },
+    series: [
+      {
+        name: "Tasks",
+        type: "bar",
+        data: data,
+      },
+    ],
+    credits: { enabled: false },
+  }
+  return <HighchartsReact highcharts={Highcharts} options={options} />
+}
+
 export function Analytics({ jobs }: AnalyticsProps) {
   // Get current date and calculate date ranges
   const now = new Date()
@@ -268,6 +315,10 @@ export function Analytics({ jobs }: AnalyticsProps) {
     completed: assigneeCompletedData,
     outstanding: assigneeOutstandingData,
   })
+
+  const tasksByRequestor = groupBy(jobs, "requestor", "name")
+  const requestorCategories = Object.keys(tasksByRequestor)
+  const requestorData = Object.values(tasksByRequestor) as number[]
 
   // Group by analyst (assignedTo)
   const completedByAnalyst = groupBy(completedLastMonth, "assignedTo")
@@ -393,23 +444,8 @@ export function Analytics({ jobs }: AnalyticsProps) {
         </Card>
 
         <Card title={"No. of Tasks by Requestor (Year to Date)"}>
-          <div className="space-y-2">
-            {/* Chart container with fixed height to preserve layout */}
-            <div style={{ height: "300px", overflow: "hidden", position: "relative" }}>
-              <div
-                style={{
-                  transform: "scale(0.8)",
-                  transformOrigin: "top left",
-                  width: "125%",
-                  height: "125%",
-                  position: "absolute",
-                  top: 0,
-                  left: 0,
-                }}
-              >
-                <DemoBarChart />
-              </div>
-            </div>
+          <div className="h-[350px] space-y-2">
+            <RequestorTotalTasksChart categories={requestorCategories} data={requestorData} />
           </div>
         </Card>
       </div>
@@ -419,21 +455,19 @@ export function Analytics({ jobs }: AnalyticsProps) {
 
 // Helper function
 function groupBy(array: any[], key: string, nestedKey?: string) {
-  return array.reduce((result, item) => {
-    let groupKey: string
-    if (nestedKey && item[key] && typeof item[key] === "object") {
-      groupKey = item[key][nestedKey] || "Unassigned"
-    } else {
-      // Fallback for non-nested or simple properties
-      groupKey = item[key] || "Unassigned"
-    }
+  return array.reduce(
+    (result, item) => {
+      let groupKey: string
+      if (nestedKey && item[key] && typeof item[key] === "object") {
+        groupKey = item[key][nestedKey] || "Unassigned"
+      } else {
+        groupKey = item[key] || "Unassigned"
+      }
 
-    // Ensure the key exists in the result object
-    if (!result[groupKey]) {
-      result[groupKey] = []
-    }
-    result[groupKey].push(item)
-    return result
-  }, {})
+      result[groupKey] = (result[groupKey] || 0) + 1
+      return result
+    },
+    {} as Record<string, number>,
+  )
 }
 
