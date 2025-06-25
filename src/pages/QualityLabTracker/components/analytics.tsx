@@ -93,6 +93,74 @@ function DivisionsPieChart({ data }: DivisionsPieChartProps) {
   return <HighchartsReact highcharts={Highcharts} options={options} />
 }
 
+interface AssigneeTasksChartProps {
+  categories: string[]
+  completedData: number[]
+  outstandingData: number[]
+}
+
+function AssigneeTasksChart({
+  categories,
+  completedData,
+  outstandingData,
+}: AssigneeTasksChartProps) {
+  const options: Highcharts.Options = {
+    chart: {
+      type: "column",
+      height: 300,
+      backgroundColor: "transparent",
+      style: {
+        fontFamily: `Outfit, sans-serif`,
+      },
+    },
+    title: { text: "" },
+    xAxis: {
+      categories,
+      labels: {
+        style: {
+          color: "#A1A1AA", // zinc-400
+        },
+      },
+    },
+    yAxis: {
+      min: 0,
+      title: {
+        text: "Number of Tasks",
+        style: {
+          color: "#A1A1AA", // zinc-400
+        },
+      },
+      labels: {
+        style: {
+          color: "#A1A1AA", // zinc-400
+        },
+      },
+      gridLineColor: "#3F3F46", // zinc-700
+    },
+    legend: {
+      itemStyle: {
+        color: "#A1A1AA", // zinc-400
+      },
+    },
+    series: [
+      {
+        name: "Completed",
+        type: "column",
+        data: completedData,
+        color: "#3b82f6", // blue-500
+      },
+      {
+        name: "Outstanding",
+        type: "column",
+        data: outstandingData,
+        color: "#ef4444", // red-500
+      },
+    ],
+    credits: { enabled: false },
+  }
+  return <HighchartsReact highcharts={Highcharts} options={options} />
+}
+
 export function Analytics({ jobs }: AnalyticsProps) {
   // Get current date and calculate date ranges
   const now = new Date()
@@ -156,6 +224,42 @@ export function Analytics({ jobs }: AnalyticsProps) {
     y: count,
     z: totalOutstanding > 0 ? (count / totalOutstanding) * 100 : 0,
   }))
+
+  const tasksByAssignee = jobs.reduce(
+    (acc, job) => {
+      const assigneeName =
+        job.profiles?.first_name && job.profiles?.last_name
+          ? `${job.profiles.first_name} ${job.profiles.last_name}`
+          : "Unassigned"
+
+      if (!acc[assigneeName]) {
+        acc[assigneeName] = { completed: 0, outstanding: 0 }
+      }
+
+      if (job.job_status?.description === "Completed") {
+        acc[assigneeName].completed += 1
+      } else {
+        acc[assigneeName].outstanding += 1
+      }
+
+      return acc
+    },
+    {} as Record<string, { completed: number; outstanding: number }>,
+  )
+
+  const assigneeCategories = Object.keys(tasksByAssignee)
+  const assigneeCompletedData = assigneeCategories.map(
+    assignee => tasksByAssignee[assignee].completed,
+  )
+  const assigneeOutstandingData = assigneeCategories.map(
+    assignee => tasksByAssignee[assignee].outstanding,
+  )
+
+  console.log("Assignee Chart Data:", {
+    categories: assigneeCategories,
+    completed: assigneeCompletedData,
+    outstanding: assigneeOutstandingData,
+  })
 
   // Group by analyst (assignedTo)
   const completedByAnalyst = groupBy(completedLastMonth, "assignedTo")
@@ -229,23 +333,12 @@ export function Analytics({ jobs }: AnalyticsProps) {
         </Card>
 
         <Card title={"Outstanding/Overdue Tasks by Assignee"}>
-          <div className="space-y-2">
-            {/* Chart container with fixed height to preserve layout */}
-            <div style={{ height: "300px", overflow: "hidden", position: "relative" }}>
-              <div
-                style={{
-                  transform: "scale(0.8)",
-                  transformOrigin: "top left",
-                  width: "125%",
-                  height: "125%",
-                  position: "absolute",
-                  top: 0,
-                  left: 0,
-                }}
-              >
-                <DemoBarChart />
-              </div>
-            </div>
+          <div className="h-[350px] space-y-2">
+            <AssigneeTasksChart
+              categories={assigneeCategories}
+              completedData={assigneeCompletedData}
+              outstandingData={assigneeOutstandingData}
+            />
           </div>
         </Card>
 
@@ -286,6 +379,27 @@ export function Analytics({ jobs }: AnalyticsProps) {
                 }}
               >
                 <DemoBarChart3 />
+              </div>
+            </div>
+          </div>
+        </Card>
+
+        <Card title={"No. of Tasks by Requestor (Year to Date)"}>
+          <div className="space-y-2">
+            {/* Chart container with fixed height to preserve layout */}
+            <div style={{ height: "300px", overflow: "hidden", position: "relative" }}>
+              <div
+                style={{
+                  transform: "scale(0.8)",
+                  transformOrigin: "top left",
+                  width: "125%",
+                  height: "125%",
+                  position: "absolute",
+                  top: 0,
+                  left: 0,
+                }}
+              >
+                <DemoBarChart />
               </div>
             </div>
           </div>
