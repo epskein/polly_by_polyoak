@@ -106,7 +106,7 @@ function AssigneeTasksChart({
 }: AssigneeTasksChartProps) {
   const options: Highcharts.Options = {
     chart: {
-      type: "column",
+      type: "bar",
       height: 300,
       backgroundColor: "transparent",
       style: {
@@ -142,16 +142,24 @@ function AssigneeTasksChart({
         color: "#A1A1AA", // zinc-400
       },
     },
+    plotOptions: {
+      bar: {
+        dataLabels: {
+          enabled: true,
+          style: { textOutline: "none", color: "#FFFFFF" },
+        },
+      },
+    },
     series: [
       {
         name: "Completed",
-        type: "column",
+        type: "bar",
         data: completedData,
         color: "#3b82f6", // blue-500
       },
       {
         name: "Outstanding",
-        type: "column",
+        type: "bar",
         data: outstandingData,
         color: "#ef4444", // red-500
       },
