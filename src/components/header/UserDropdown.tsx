@@ -30,7 +30,7 @@ export default function UserDropdown() {
   const handleSignOut = async () => {
     await signOut()
     closeDropdown()
-    navigate("/signin")
+    navigate("/auth/signin")
   }
 
   const displayName = profile

@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import Button from "../ui/button/Button"
+import { Button } from "../ui/button/Button"
 
 type UndoButtonProps = {
   onUndo: () => void

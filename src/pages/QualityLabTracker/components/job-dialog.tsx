@@ -1,27 +1,37 @@
 "use client"
 
-import { useState, useEffect, SetStateAction } from "react"
-import Button from "../../../components/ui/button/Button"
-import { Dialog, DialogHeader, DialogTitle } from "../../../components/ui/dialog"
-import Input from "../../../components/ui/input/Input"
+import { useState, useEffect } from "react"
+import { Button } from "../../../components/ui/button/Button"
+import {
+  Dialog,
+  DialogHeader,
+  DialogTitle,
+  DialogContent,
+  DialogFooter,
+} from "../../../components/ui/dialog"
+import { Input } from "../../../components/ui/input/Input"
 import Label from "../../../components/form/Label"
-import Select from "../../../components/form/Select" // Default import
-import TextArea from "../../../components/form/input/TextArea"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "../../../components/form/Select"
+import { Textarea } from "../../../components/form/input/TextArea"
 import type { Job } from "../types/job"
-import { supabase } from "../../../lib/supabase";
-import DatePicker from "../../../components/form/date-picker";
+import { supabase } from "../../../lib/supabase"
+import { DatePicker } from "../../../components/form/date-picker"
 import { Plus } from "lucide-react"
-import { fetchRequestors, createRequestor } from "../lib/requestorService";
+import { createRequestor } from "../lib/requestorService"
+import { fetchRequestors } from "../lib/requestorService"
 import { useJobs } from "../hooks/use-jobs"
-
-
 
 interface JobDialogProps {
   open: boolean
   setOpen: (open: boolean) => void
-  onSubmit: (job: Job | Omit<Job, "id" | "created_at">) => void; // ✅ fix is here
+  onSubmit: (job: Job | Omit<Job, "id" | "created_at">) => void
   editJob: Job | null
- 
 }
 
 const initialEmptyJob: Job = {
@@ -42,27 +52,47 @@ const initialEmptyJob: Job = {
   outcome: "",
   requestor_id: null,
   created_at: new Date().toISOString(),
-};
+}
 
 export function JobDialog({ open, setOpen, onSubmit, editJob }: JobDialogProps) {
-  const [job, setJob] = useState<Job>({ ...initialEmptyJob });
-  const [categories, setCategories] = useState<{ value: string; label: string }[]>([]);
-  const [divisions, setDivisions] = useState<{ value: string; label: string }[]>([]);
-  const [assignedToOptions, setAssignedToOptions] = useState<{ value: string; label: string }[]>([]);
-  const [statuses, setStatuses] = useState<{ value: string; label: string }[]>([]);
-  const [requestors, setRequestors] = useState<{ value: string; label: string }[]>([]);
-  const [requestorDialogOpen, setRequestorDialogOpen] = useState(false);
-  const [newRequestorName, setNewRequestorName] = useState("");
-  
+  const [job, setJob] = useState<Job>(initialEmptyJob)
+  const [categories, setCategories] = useState<{ value: string; label: string }[]>([])
+  const [divisions, setDivisions] = useState<{ value: string; label: string }[]>([])
+  const [assignedToOptions, setAssignedToOptions] = useState<{ value: string; label: string }[]>([])
+  const [statuses, setStatuses] = useState<{ value: string; label: string }[]>([])
+  const [requestors, setRequestors] = useState<{ value: string; label: string }[]>([])
+  const [requestorDialogOpen, setRequestorDialogOpen] = useState(false)
+  const [newRequestorName, setNewRequestorName] = useState("")
+  const [submissionDate, setSubmissionDate] = useState<Date | undefined>(new Date())
+  const [startDate, setStartDate] = useState<Date | undefined>(new Date())
+  const [dueDate, setDueDate] = useState<Date | undefined>(new Date())
+  const [revisedDueDate, setRevisedDueDate] = useState<Date | undefined>()
+  const [completionDate, setCompletionDate] = useState<Date | undefined>()
+
   useEffect(() => {
     if (open) {
       if (editJob) {
-        setJob({ ...editJob });
+        setJob({ ...editJob })
+        setSubmissionDate(
+          editJob.submission_date ? new Date(editJob.submission_date) : undefined,
+        )
+        setStartDate(editJob.start_date ? new Date(editJob.start_date) : undefined)
+        setDueDate(editJob.due_date ? new Date(editJob.due_date) : undefined)
+        setRevisedDueDate(
+          editJob.revised_due_date
+            ? new Date(editJob.revised_due_date)
+            : undefined,
+        )
+        setCompletionDate(
+          editJob.completion_date
+            ? new Date(editJob.completion_date)
+            : undefined,
+        )
       } else {
-        setJob({ ...initialEmptyJob });
+        setJob({ ...initialEmptyJob })
       }
     }
-  }, [open, editJob]);
+  }, [open, editJob])
 
   const fetchRequestors = async () => {
     const { data, error } = await supabase.from("requestor").select("*");
@@ -129,9 +159,12 @@ useEffect(() => {
     fetchAssignedUsers();
   }, []);
 
-  const handleChange = (field: keyof Job, value: any) => {
-    setJob((prev) => ({ ...prev, [field]: value }));
-  };
+  const handleChange = (
+    field: keyof Job,
+    value: string | number | Date | null,
+  ) => {
+    setJob((prev) => ({ ...prev, [field]: value }))
+  }
   
   const handleSubmit = async () => {
     try {
@@ -180,129 +213,242 @@ useEffect(() => {
   
 
   return (
-    <Dialog
-      isOpen={open}
-      onClose={() => setOpen(false)}
-      className="max-w-8xl p-0 mt-16 mx-auto rounded-xl shadow-2xl border border-gray-200 dark:border-white/10"
-    >
-      <div className="p-6 sm:p-0">
-        <DialogHeader>
-          <DialogTitle>{editJob ? "Edit Job" : "Create New Job"}</DialogTitle>
-        </DialogHeader>
-        <div className="p-6 pt-0">
+    <>
+      <Dialog open={open} onOpenChange={setOpen}>
+        <DialogContent className="max-w-4xl">
+          <DialogHeader>
+            <DialogTitle>{editJob ? "Edit Job" : "Create New Job"}</DialogTitle>
+          </DialogHeader>
           <div className="grid gap-6 py-6">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div>
-                <Label className="mb-2 block">Division</Label>
+              <div>
+                <Label>Division</Label>
                 <Select
-                  options={divisions}
-                  placeholder="Select Division"
-                  onChange={(value) => handleChange("division_id", value)}
-                  className="w-full"
-                />
+                  onValueChange={(value) => handleChange("division_id", value)}
+                  value={job.division_id?.toString()}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select Division" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {divisions.map((d) => (
+                      <SelectItem key={d.value} value={d.value}>
+                        {d.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
-            <div>
-                <Label className="mb-2 block">Requestor</Label>
+              <div>
+                <Label>Requestor</Label>
                 <div className="flex items-center gap-2">
-                  <div className="flex-1">
-                    <Select
-                      options={requestors}
-                      placeholder="Select Requestor"
-                      onChange={(value) => handleChange("requestor_id", value)}
-                      className="w-full"
-                    />
-                  </div>
-                  <Button  variant="outline"  onClick={() => setRequestorDialogOpen(true)}>
+                  <Select
+                    onValueChange={(value) => handleChange("requestor_id", value)}
+                    value={job.requestor_id?.toString()}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select Requestor" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {requestors.map((r) => (
+                        <SelectItem key={r.value} value={r.value}>
+                          {r.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <Button
+                    variant="outline"
+                    onClick={() => setRequestorDialogOpen(true)}
+                  >
                     <Plus className="w-4 h-4" />
                   </Button>
                 </div>
               </div>
-              
               <div>
-                <Label className="mb-2 block">Task Category</Label>
+                <Label>Task Category</Label>
                 <Select
-                  options={[{ value: "", label: "Select Category" }, ...categories]}
-                  placeholder="Select Category"
-                  onChange={(value) => handleChange("task_category_id", value)}
-                  className="w-full"
-                />
+                  onValueChange={(value) => handleChange("task_category_id", value)}
+                  value={job.task_category_id?.toString()}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select Category" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {[{ value: "", label: "Select Category" }, ...categories].map((c) => (
+                      <SelectItem key={c.value} value={c.value}>
+                        {c.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
               <div>
-                <Label className="mb-2 block">Assigned To</Label>
+                <Label>Assigned To</Label>
                 <Select
-                  options={assignedToOptions}
-                  placeholder="Select user"
-                  onChange={(value) => handleChange("assigned_to", value)}
-                  className="w-full"
-                />
+                  onValueChange={(value) => handleChange("assigned_to", value)}
+                  value={job.assigned_to?.toString()}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select user" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {assignedToOptions.map((u) => (
+                      <SelectItem key={u.value} value={u.value}>
+                        {u.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
               <div className="md:col-span-2">
-                <Label className="mb-2 block">Task Title</Label>
-                <Input placeholder="eg. Inspect bottle cap" value={job.title} onChange={(e: { target: { value: any } }) => handleChange("title", e.target.value)} className="w-full" />
-              </div>
-              <div>
-                <Label className="mb-2 block">Product Code</Label>
+                <Label>Task Title</Label>
                 <Input
-                  value={job.product_code}
-                  placeholder="eg. ACTB12345" 
-                  onChange={(e: { target: { value: any } }) => handleChange("product_code", e.target.value)}
-                  className="w-full"
+                  placeholder="eg. Inspect bottle cap"
+                  value={job.title}
+                  onChange={(e) => handleChange("title", e.target.value)}
                 />
               </div>
               <div>
-                <Label className="mb-2 block">Product Description</Label>
+                <Label>Product Code</Label>
+                <Input
+                  placeholder="eg. ACTB12345"
+                  value={job.product_code}
+                  onChange={(e) => handleChange("product_code", e.target.value)}
+                />
+              </div>
+              <div>
+                <Label>Product Description</Label>
                 <Input
                   value={job.product_description}
-                  onChange={(e: { target: { value: any } }) => handleChange("product_description", e.target.value)}
-                  className="w-full"
+                  onChange={(e) => handleChange("product_description", e.target.value)}
                 />
               </div>
-              <DatePicker id="submissionDate" label="Submission Date" placeholder="Select a date" value={job.submission_date} onChange={(dates) => handleChange("submission_date", dates[0])} />
-              <DatePicker id="startDate" label="Start Date" placeholder="Select a date" value={job.start_date} onChange={(dates) => handleChange("start_date", dates[0])} />
-              <DatePicker id="dueDate" label="Due Date" value={job.due_date} onChange={(dates) => handleChange("due_date", dates[0])} />
-              <DatePicker id="revisedDueDate" label="Revised Due Date" placeholder="Select a date" value={job.revised_due_date} onChange={(dates) => handleChange("revised_due_date", dates[0])} />
-              <DatePicker id="completionDate" label="Completion Date" placeholder="Select a date" value={job.completion_date} onChange={(dates) => handleChange("completion_date", dates[0])} />
               <div>
-                <Label className="mb-2 block">Status</Label>
+                <Label>Status</Label>
                 <Select
-  options={[{ value: "", label: "Select Status" }, ...statuses]}
-  placeholder="Select Status"
-  onChange={(value) => handleChange("status_id", value)}
-  className="w-full"
-/>
+                  onValueChange={(value) => handleChange("status_id", value)}
+                  value={job.status_id?.toString()}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select Status" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {[{ value: "", label: "Select Status" }, ...statuses].map((s) => (
+                      <SelectItem key={s.value} value={s.value}>
+                        {s.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
               <div className="md:col-span-2">
-                <Label className="mb-2 block">Comments</Label>
-                <TextArea value={job.comments} onChange={(value) => handleChange("comments", value)} className="w-full min-h-[100px]" />
+                <Label>Comments</Label>
+                {/* <Textarea
+                  placeholder="Add any comments"
+                  value={job.comments ?? ""}
+                  onChange={(e) => handleChange("comments", e.target.value)}
+                /> */}
               </div>
               <div className="md:col-span-2">
-                <Label className="mb-2 block">Outcome</Label>
-                <TextArea value={job.outcome} onChange={(value) => handleChange("outcome", value)} className="w-full min-h-[100px]" />
+                <Label>Outcome</Label>
+                {/* <Textarea
+                  value={job.outcome ?? ""}
+                  onChange={(e) => handleChange("outcome", e.target.value)}
+                /> */}
+              </div>
+              <div>
+                <Label>Submission Date</Label>
+                <DatePicker
+                  date={submissionDate}
+                  setDate={(date) => {
+                    setSubmissionDate(date)
+                    handleChange("submission_date", date?.toISOString() ?? null)
+                  }}
+                />
+              </div>
+              <div>
+                <Label>Start Date</Label>
+                <DatePicker
+                  date={startDate}
+                  setDate={(date) => {
+                    setStartDate(date)
+                    handleChange("start_date", date?.toISOString() ?? null)
+                  }}
+                />
+              </div>
+              <div>
+                <Label>Due Date</Label>
+                <DatePicker
+                  date={dueDate}
+                  setDate={(date) => {
+                    setDueDate(date)
+                    handleChange("due_date", date?.toISOString() ?? null)
+                  }}
+                />
+              </div>
+              <div>
+                <Label>Revised Due Date</Label>
+                <DatePicker
+                  date={revisedDueDate}
+                  setDate={(date) => {
+                    setRevisedDueDate(date)
+                    handleChange("revised_due_date", date?.toISOString() ?? null)
+                  }}
+                />
+              </div>
+              <div>
+                <Label>Completion Date</Label>
+                <DatePicker
+                  date={completionDate}
+                  setDate={(date) => {
+                    setCompletionDate(date)
+                    handleChange("completion_date", date?.toISOString() ?? null)
+                  }}
+                />
               </div>
             </div>
           </div>
-        </div>
-        <div className="flex justify-end gap-3 p-6 bg-gray-50 dark:bg-gray-800/30 border-t border-gray-200 dark:border-gray-700/30 rounded-b-xl">
-          <Button variant="outline" onClick={() => setOpen(false)}>Cancel</Button>
-          <Button onClick={handleSubmit}>{editJob ? "Save Changes" : "Create Job"}</Button>
-        </div>
-      </div>
-     {/* ➕ Requestor Creation Dialog */}
-     <Dialog isOpen={requestorDialogOpen} onClose={() => setRequestorDialogOpen(false)} className="max-w-md mx-auto">
-        <div className="p-6">
-          <DialogHeader>
-            <DialogTitle>Add New Requestor</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4">
-            <Label htmlFor="newRequestor">Requestor Name</Label>
-            <Input id="newRequestor" value={newRequestorName} onChange={(e: { target: { value: SetStateAction<string> } }) => setNewRequestorName(e.target.value)} />
-          </div>
-          <div className="flex justify-end mt-6 gap-3">
-            <Button variant="outline" onClick={() => setRequestorDialogOpen(false)}>Cancel</Button>
-            <Button onClick={handleAddRequestor}>Save</Button>
-          </div>
-        </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setOpen(false)}>
+              Cancel
+            </Button>
+            <Button onClick={handleSubmit}>
+              {editJob ? "Save Changes" : "Create Job"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
       </Dialog>
-    </Dialog>
+      {/* ➕ Requestor Creation Dialog */}
+      <Dialog
+        open={requestorDialogOpen}
+        onOpenChange={setRequestorDialogOpen}
+      >
+        <DialogContent className="max-w-md mx-auto">
+          <div className="p-6">
+            <DialogHeader>
+              <DialogTitle>Add New Requestor</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4">
+              <Label htmlFor="newRequestor">Requestor Name</Label>
+              <Input
+                id="newRequestor"
+                value={newRequestorName}
+                onChange={(e) => setNewRequestorName(e.target.value)}
+              />
+            </div>
+            <div className="flex justify-end mt-6 gap-3">
+              <Button
+                variant="outline"
+                onClick={() => setRequestorDialogOpen(false)}
+              >
+                Cancel
+              </Button>
+              <Button onClick={handleAddRequestor}>Add Requestor</Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 };

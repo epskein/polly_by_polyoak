@@ -1,6 +1,6 @@
 "use client"
 import { FaPlus, FaMinus } from "react-icons/fa"
-import Button from "../ui/button/Button"
+import { Button } from "../ui/button/Button"
 import type { Product } from "../../types/inventory"
 
 type ProductInventoryManagerProps = {

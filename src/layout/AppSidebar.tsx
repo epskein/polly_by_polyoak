@@ -55,12 +55,17 @@ const navItems: NavItem[] = [
   {
     icon: <BoxCubeIcon />,
     name: 'Inventory Tracker',
-    path: '/inventory-tracker',
+    path: '/inventory',
   },
   {
     icon: <ListIcon />,
     name: 'Quality Lab Job Tracker',
-    path: '/quality-lab-tracker',
+    path: '/quality-lab',
+  },
+  {
+    icon: <ListIcon />,
+    name: 'IOD Incident Tracker',
+    path: '/iod-tracker',
   },
   {
     icon: <FormInputIcon />,

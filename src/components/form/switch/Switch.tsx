@@ -1,72 +1,29 @@
-import { useState } from "react";
+"use client"
 
-interface SwitchProps {
-  label: string;
-  defaultChecked?: boolean;
-  disabled?: boolean;
-  onChange?: (checked: boolean) => void;
-  color?: "blue" | "gray"; // Added prop to toggle color theme
-}
+import * as React from "react"
+import * as SwitchPrimitives from "@radix-ui/react-switch"
 
-const Switch: React.FC<SwitchProps> = ({
-  label,
-  defaultChecked = false,
-  disabled = false,
-  onChange,
-  color = "blue", // Default to blue color
-}) => {
-  const [isChecked, setIsChecked] = useState(defaultChecked);
+import { cn } from "../../../lib/utils"
 
-  const handleToggle = () => {
-    if (disabled) return;
-    const newCheckedState = !isChecked;
-    setIsChecked(newCheckedState);
-    if (onChange) {
-      onChange(newCheckedState);
-    }
-  };
+const Switch = React.forwardRef<
+  React.ElementRef<typeof SwitchPrimitives.Root>,
+  React.ComponentPropsWithoutRef<typeof SwitchPrimitives.Root>
+>(({ className, ...props }, ref) => (
+  <SwitchPrimitives.Root
+    className={cn(
+      "peer inline-flex h-6 w-11 shrink-0 cursor-pointer items-center rounded-full border-2 border-transparent transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:cursor-not-allowed disabled:opacity-50 data-[state=checked]:bg-primary data-[state=unchecked]:bg-input",
+      className,
+    )}
+    {...props}
+    ref={ref}
+  >
+    <SwitchPrimitives.Thumb
+      className={cn(
+        "pointer-events-none block h-5 w-5 rounded-full bg-background shadow-lg ring-0 transition-transform data-[state=checked]:translate-x-5 data-[state=unchecked]:translate-x-0",
+      )}
+    />
+  </SwitchPrimitives.Root>
+))
+Switch.displayName = SwitchPrimitives.Root.displayName
 
-  const switchColors =
-    color === "blue"
-      ? {
-          background: isChecked
-            ? "bg-brand-500 "
-            : "bg-gray-200 dark:bg-white/10", // Blue version
-          knob: isChecked
-            ? "translate-x-full bg-white"
-            : "translate-x-0 bg-white",
-        }
-      : {
-          background: isChecked
-            ? "bg-gray-800 dark:bg-white/10"
-            : "bg-gray-200 dark:bg-white/10", // Gray version
-          knob: isChecked
-            ? "translate-x-full bg-white"
-            : "translate-x-0 bg-white",
-        };
-
-  return (
-    <label
-      className={`flex cursor-pointer select-none items-center gap-3 text-sm font-medium ${
-        disabled ? "text-gray-400" : "text-gray-700 dark:text-gray-400"
-      }`}
-      onClick={handleToggle} // Toggle when the label itself is clicked
-    >
-      <div className="relative">
-        <div
-          className={`block transition duration-150 ease-linear h-6 w-11 rounded-full ${
-            disabled
-              ? "bg-gray-100 pointer-events-none dark:bg-gray-800"
-              : switchColors.background
-          }`}
-        ></div>
-        <div
-          className={`absolute left-0.5 top-0.5 h-5 w-5 rounded-full shadow-theme-sm duration-150 ease-linear transform ${switchColors.knob}`}
-        ></div>
-      </div>
-      {label}
-    </label>
-  );
-};
-
-export default Switch;
+export { Switch }

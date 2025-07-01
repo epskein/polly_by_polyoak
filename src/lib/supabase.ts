@@ -11,9 +11,9 @@ if (!supabaseUrl || !supabaseAnonKey) {
 
 export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   auth: {
-    autoRefreshToken: false,
-    persistSession: false, // 👈 disables use of cached sessions
-    detectSessionInUrl: false,
+    autoRefreshToken: true,
+    persistSession: true,
+    detectSessionInUrl: true,
   },
 });
 // Helper function to get current user

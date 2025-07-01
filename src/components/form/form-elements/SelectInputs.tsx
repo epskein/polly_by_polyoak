@@ -1,7 +1,13 @@
 import { useState } from "react";
 import ComponentCard from "../../common/ComponentCard";
 import Label from "../Label";
-import Select from "../Select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "../Select";
 import MultiSelect from "../MultiSelect";
 
 export default function SelectInputs() {
@@ -27,12 +33,18 @@ export default function SelectInputs() {
       <div className="space-y-6">
         <div>
           <Label>Select Input</Label>
-          <Select
-            options={options}
-            placeholder="Select Option"
-            onChange={handleSelectChange}
-            className="dark:bg-dark-900"
-          />
+          <Select onValueChange={handleSelectChange}>
+            <SelectTrigger className="w-full">
+              <SelectValue placeholder="Select an option" />
+            </SelectTrigger>
+            <SelectContent>
+              {options.map((option) => (
+                <SelectItem key={option.value} value={option.value}>
+                  {option.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
         <div>
           <MultiSelect

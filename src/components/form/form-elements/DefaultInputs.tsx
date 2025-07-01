@@ -1,13 +1,20 @@
 import { useState } from "react";
 import ComponentCard from "../../common/ComponentCard";
 import Label from "../Label";
-import Input from "../input/InputField";
-import Select from "../Select";
+import { Input } from "../../ui/input/Input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "../Select";
 import { EyeCloseIcon, EyeIcon, TimeIcon } from "../../../icons";
-import DatePicker from "../date-picker.tsx";
+import { DatePicker } from "../date-picker";
 
 export default function DefaultInputs() {
   const [showPassword, setShowPassword] = useState(false);
+  const [date, setDate] = useState<Date | undefined>(new Date());
   const options = [
     { value: "marketing", label: "Marketing" },
     { value: "template", label: "Template" },
@@ -30,12 +37,18 @@ export default function DefaultInputs() {
         </div>
         <div>
           <Label>Select Input</Label>
-          <Select
-            options={options}
-            placeholder="Select an option"
-            onChange={handleSelectChange}
-            className="dark:bg-dark-900"
-          />
+          <Select onValueChange={handleSelectChange}>
+            <SelectTrigger className="w-full">
+              <SelectValue placeholder="Select an option" />
+            </SelectTrigger>
+            <SelectContent>
+              {options.map((option) => (
+                <SelectItem key={option.value} value={option.value}>
+                  {option.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
         <div>
           <Label>Password Input</Label>
@@ -58,15 +71,8 @@ export default function DefaultInputs() {
         </div>
 
         <div>
-          <DatePicker
-            id="date-picker"
-            label="Date Picker Input"
-            placeholder="Select a date"
-            onChange={(dates, currentDateString) => {
-              // Handle your logic
-              console.log({ dates, currentDateString });
-            }}
-          />
+          <Label>Date Picker Input</Label>
+          <DatePicker date={date} setDate={setDate} />
         </div>
 
         <div>
@@ -76,7 +82,9 @@ export default function DefaultInputs() {
               type="time"
               id="tm"
               name="tm"
-              onChange={(e) => console.log(e.target.value)}
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                console.log(e.target.value)
+              }
             />
             <span className="absolute text-gray-500 -translate-y-1/2 pointer-events-none right-3 top-1/2 dark:text-gray-400">
               <TimeIcon className="size-6" />

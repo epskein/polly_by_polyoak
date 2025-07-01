@@ -6,12 +6,14 @@ import { DragDropContext, type DropResult } from "react-beautiful-dnd"
 import ProductList from "../../components/inventory-tracker/ProductList"
 import KanbanBoard from "../../components/inventory-tracker/KanbanBoard"
 import AuditTrail from "../../components/inventory-tracker/AuditTrail"
-import AddProductDialog from "../../components/inventory-tracker/AddProductDialog"
+import { AddProductDialog } from "../../components/inventory-tracker/AddProductDialog"
 import EditProductDialog from "../../components/inventory-tracker/EditProductDialog"
 import UndoButton from "../../components/inventory-tracker/UndoButton"
 import ErrorBoundary from "../../components/inventory-tracker/ErrorBoundary"
 import type { Product, Column, AuditEntry } from "../../types/inventory"
 import { useAuthContext } from "../../context/AuthContext"
+import { Button } from "../../components/ui/button/Button"
+import { FaPlus } from "react-icons/fa"
 
 export default function InventoryTracker() {
   // State variables with proper typing
@@ -21,7 +23,6 @@ export default function InventoryTracker() {
   const [products, setProducts] = useState<Product[]>([])
   const [columns, setColumns] = useState<Column[]>([])
   const [auditTrail, setAuditTrail] = useState<AuditEntry[]>([])
-  const [isAddProductDialogOpen, setIsAddProductDialogOpen] = useState<boolean>(false)
   const [isEditProductDialogOpen, setIsEditProductDialogOpen] = useState<boolean>(false)
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null)
   const [lastMove, setLastMove] = useState<AuditEntry | null>(null)
@@ -75,35 +76,26 @@ export default function InventoryTracker() {
   useEffect(() => {
     const checkAuth = async () => {
       try {
-        // Try to get user from auth context
         if (auth.user) {
           setUserName(auth.user.email || "Authenticated User")
-
-          // Get user role from profile or set default
-          // This is a placeholder - you'll need to adapt this to your actual user role storage
           if (auth.profile) {
-            setUserRole(auth.profile.role || "stdUser")
+            setUserRole(auth.profile.position || "viewer") // Use position as role
           } else {
-            // For demo purposes, you can set different roles to test functionality
-            // In a real app, this would come from your auth system
-            setUserRole("warehouse") // Default role for testing
+            setUserRole("warehouse")
           }
         } else {
-          // Fallback to local storage for demo purposes
           const storedUserName = localStorage.getItem("userName")
           const storedUserRole = localStorage.getItem("userRole")
-
           if (storedUserName) {
             setUserName(storedUserName)
           } else {
             setUserName("Demo User")
             localStorage.setItem("userName", "Demo User")
           }
-
           if (storedUserRole) {
             setUserRole(storedUserRole)
           } else {
-            setUserRole("warehouse") // Default role for testing
+            setUserRole("warehouse")
             localStorage.setItem("userRole", "warehouse")
           }
         }
@@ -115,7 +107,6 @@ export default function InventoryTracker() {
         setLoading(false)
       }
     }
-
     checkAuth()
   }, [auth])
 
@@ -250,199 +241,54 @@ export default function InventoryTracker() {
   )
 
   // Add product function with proper typing
-  const addProduct = useCallback(
-    (newProduct: Omit<Product, "id" | "color" | "itemsPerPalette" | "palettes">) => {
-      try {
-        const id = newProduct.code
-        const color = generateColor()
-        const product: Product = {
-          ...newProduct,
-          id,
-          color,
-          itemsPerPalette: 25,
-          palettes: Math.ceil(newProduct.stock / 25),
-        }
-
-        setProducts((prevProducts) => [...prevProducts, product])
-
-        setColumns((prevColumns) => {
-          const prominentColumn = prevColumns.find((col) => col.id === "prominent")
-          if (prominentColumn) {
-            const newProductIds = Array.from({ length: product.palettes }, (_, i) => `${id}-${i + 1}`)
-            return prevColumns.map((col) =>
-              col.id === "prominent" ? { ...col, productIds: [...col.productIds, ...newProductIds] } : col,
-            )
-          }
-          return prevColumns
-        })
-
-        addAuditEntry({
-          productId: id,
-          productName: newProduct.name,
-          productCode: newProduct.code,
-          productColor: color,
-          action: "add-product",
-          details: `Added new product: ${newProduct.name} (${newProduct.code}) with ${product.palettes} palettes`,
-        })
-      } catch (error) {
-        console.error("Error in addProduct:", error)
-      }
-    },
-    [addAuditEntry],
-  )
+  const handleAddProduct = (newProduct: Omit<Product, "id">) => {
+    const productToAdd: Product = {
+      ...newProduct,
+      id: `prod-${Date.now()}`,
+      // ensure all fields are present
+      color: newProduct.color || generateColor(),
+      stock: newProduct.stock || 0,
+      itemsPerPalette: newProduct.itemsPerPalette || 0,
+      palettes: newProduct.palettes || 0,
+      code: newProduct.code || `CODE-${Date.now()}`,
+    }
+    setProducts((prev) => [...prev, productToAdd])
+    addAuditEntry({
+      productId: productToAdd.id,
+      productName: productToAdd.name,
+      productCode: productToAdd.code,
+      productColor: productToAdd.color,
+      action: "add",
+      details: `Added new product: ${productToAdd.name}`,
+    })
+  }
 
   // Update product function with proper typing
-  const updateProduct = useCallback(
-    (updatedProduct: Product, action?: string, change?: number) => {
-      try {
-        setProducts((prevProducts) => prevProducts.map((p) => (p.id === updatedProduct.id ? updatedProduct : p)))
-
-        setColumns((prevColumns) => {
-          let allProductIds = prevColumns
-            .flatMap((col) => col.productIds)
-            .filter((id) => id.startsWith(updatedProduct.id))
-            .sort((a, b) => {
-              const [, aNum] = a.split("-")
-              const [, bNum] = b.split("-")
-              return Number.parseInt(aNum) - Number.parseInt(bNum)
-            })
-
-          const currentPalettes = allProductIds.length
-          const newPalettes = updatedProduct.palettes
-
-          if (newPalettes > currentPalettes) {
-            const highestPaletteNumber =
-              currentPalettes > 0 ? Number.parseInt(allProductIds[currentPalettes - 1].split("-")[1]) : 0
-            const additionalPalettes = Array.from(
-              { length: newPalettes - currentPalettes },
-              (_, i) => `${updatedProduct.id}-${highestPaletteNumber + i + 1}`,
-            )
-            allProductIds = [...allProductIds, ...additionalPalettes]
-          } else if (newPalettes < currentPalettes) {
-            allProductIds = allProductIds.slice(0, newPalettes)
-          }
-
-          return prevColumns.map((column) => ({
-            ...column,
-            productIds: column.productIds
-              .filter((id) => !id.startsWith(updatedProduct.id))
-              .concat(column.id === "prominent" ? allProductIds : []),
-          }))
-        })
-
-        if (action) {
-          let auditAction = ""
-          let details = ""
-
-          switch (action) {
-            case "items-per-palette-change":
-              auditAction = "update-items-per-palette"
-              details = `Changed items per palette ${change && change > 0 ? "increased" : "decreased"} to ${updatedProduct.itemsPerPalette}`
-              break
-            case "palettes-change":
-              auditAction = "update-palettes"
-              details = `Changed number of palettes ${change && change > 0 ? "increased" : "decreased"} to ${updatedProduct.palettes}`
-              break
-            default:
-              auditAction = "update-product"
-              details = `Updated product information`
-          }
-
-          addAuditEntry({
-            productId: updatedProduct.id,
-            productName: updatedProduct.name,
-            productCode: updatedProduct.code,
-            productColor: updatedProduct.color,
-            action: auditAction,
-            details,
-          })
-        }
-      } catch (error) {
-        console.error("Error in updateProduct:", error)
-      }
-    },
-    [addAuditEntry],
-  )
+  const handleUpdateProduct = (
+    updatedProduct: Product,
+    action?: "items-per-palette-change" | "palettes-change",
+    change?: number,
+  ) => {
+    setProducts((prev) =>
+      prev.map((p) => (p.id === updatedProduct.id ? updatedProduct : p)),
+    )
+    if (action && change) {
+       addAuditEntry({
+        productId: updatedProduct.id,
+        productName: updatedProduct.name,
+        productCode: updatedProduct.code,
+        productColor: updatedProduct.color,
+        action: 'update',
+        details: `Updated ${action} by ${change}`
+      });
+    }
+  }
 
   // Edit product details function with proper typing
-  const editProductDetails = useCallback(
-    (updatedProduct: Product) => {
-      try {
-        const originalProduct = products.find((p) => p.id === updatedProduct.id)
-
-        if (!originalProduct) return
-
-        const nameChanged = originalProduct.name !== updatedProduct.name
-        const codeChanged = originalProduct.code !== updatedProduct.code
-
-        let details = ""
-        if (nameChanged && codeChanged) {
-          details = `Changed product name from "${originalProduct.name}" to "${updatedProduct.name}" and code from "${originalProduct.code}" to "${updatedProduct.code}"`
-        } else if (nameChanged) {
-          details = `Changed product name from "${originalProduct.name}" to "${updatedProduct.name}"`
-        } else if (codeChanged) {
-          details = `Changed product code from "${originalProduct.code}" to "${updatedProduct.code}"`
-        }
-
-        addAuditEntry({
-          productId: updatedProduct.id,
-          productName: updatedProduct.name,
-          productCode: updatedProduct.code,
-          productColor: updatedProduct.color,
-          action: "edit-product-details",
-          details,
-        })
-
-        setProducts((prevProducts) => prevProducts.map((p) => (p.id === updatedProduct.id ? updatedProduct : p)))
-      } catch (error) {
-        console.error("Error in editProductDetails:", error)
-      }
-    },
-    [products, addAuditEntry],
-  )
-
-  // Delete product function with proper typing
-  const deleteProduct = useCallback(
-    (productId: string) => {
-      try {
-        const productToDelete = products.find((p) => p.id === productId)
-
-        if (!productToDelete) return
-
-        addAuditEntry({
-          productId,
-          productName: productToDelete.name,
-          productCode: productToDelete.code,
-          productColor: productToDelete.color,
-          action: "delete-product",
-          details: `Deleted product: ${productToDelete.name} (${productToDelete.code})`,
-        })
-
-        if (lastMove && lastMove.productId === productId) {
-          setLastMove(null)
-        }
-
-        setColumns((prevColumns) =>
-          prevColumns.map((column) => ({
-            ...column,
-            productIds: column.productIds.filter((id) => !id.startsWith(productId)),
-          })),
-        )
-
-        setProducts((prevProducts) => prevProducts.filter((p) => p.id !== productId))
-
-        if (isEditProductDialogOpen && selectedProduct?.id === productId) {
-          setIsEditProductDialogOpen(false)
-          setSelectedProduct(null)
-        }
-
-        setForceRerender((prev) => prev + 1)
-      } catch (error) {
-        console.error("Error in deleteProduct:", error)
-      }
-    },
-    [products, lastMove, isEditProductDialogOpen, selectedProduct, addAuditEntry],
-  )
+  const handleEditProduct = (product: Product) => {
+    setSelectedProduct(product)
+    setIsEditProductDialogOpen(true)
+  }
 
   // Handle undo function with proper typing
   const handleUndo = useCallback(() => {
@@ -516,11 +362,26 @@ export default function InventoryTracker() {
     }
   }, [lastMove, addAuditEntry, products, columns, userRole, allowedMoves])
 
-  // Handle edit product function with proper typing
-  const handleEditProduct = useCallback((product: Product) => {
-    setSelectedProduct(product)
-    setIsEditProductDialogOpen(true)
-  }, [])
+  const handleDeleteProduct = (productId: string) => {
+    const productToDelete = products.find((p) => p.id === productId)
+    if (!productToDelete) return
+
+    setProducts((prev) => prev.filter((p) => p.id !== productId))
+    setColumns((prev) =>
+      prev.map((col) => ({
+        ...col,
+        productIds: col.productIds.filter((id) => !id.startsWith(productId)),
+      })),
+    )
+    addAuditEntry({
+      productId: productToDelete.id,
+      productName: productToDelete.name,
+      productCode: productToDelete.code,
+      productColor: productToDelete.color,
+      action: "delete",
+      details: `Deleted product: ${productToDelete.name}`,
+    })
+  }
 
   // If still loading, show a loading indicator
   if (loading) {
@@ -535,53 +396,48 @@ export default function InventoryTracker() {
   }
 
   return (
-    <div className="p-5 border border-gray-200 rounded-2xl dark:border-gray-800 lg:p-6">
-      <div className="flex h-full bg-gray-100" key={forceRerender}>
-        <div className="flex-1 flex flex-col p-4">
-          <div className="flex justify-between items-center mb-8">
-            <h1 className="text-4xl font-bold italic">PROMINENT INVENTORY TRACKER</h1>
-            <div className="bg-white px-4 py-2 rounded-lg shadow">
-              <p className="text-sm font-medium">User: {userName}</p>
-              <p className="text-sm font-medium">Role: {userRole}</p>
+    <ErrorBoundary>
+      <div className="container mx-auto p-4">
+        {loading ? (
+          <div>Loading...</div>
+        ) : (
+          <>
+            <div className="flex justify-between items-center mb-4">
+              <h1 className="text-2xl font-bold">Inventory Kanban Board</h1>
             </div>
-          </div>
 
-          <ErrorBoundary>
-            <ProductList
-              products={products}
-              onAddProduct={() => setIsAddProductDialogOpen(true)}
-              onUpdateProduct={updateProduct}
-              onEditProduct={handleEditProduct}
+            <DragDropContext onDragEnd={onDragEnd}>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="md:col-span-2 space-y-4">
+                  <ProductList
+                    products={products}
+                    onAddProduct={handleAddProduct}
+                    onUpdateProduct={handleUpdateProduct}
+                    onDeleteProduct={handleDeleteProduct}
+                  />
+                  <KanbanBoard
+                    columns={columns}
+                    products={products}
+                    userRole={userRole}
+                  />
+                </div>
+                <div className="md:col-span-1">
+                  <AuditTrail auditTrail={auditTrail} products={products} />
+                </div>
+              </div>
+            </DragDropContext>
+
+            <EditProductDialog
+              isOpen={isEditProductDialogOpen}
+              onClose={() => setIsEditProductDialogOpen(false)}
+              product={selectedProduct}
+              onUpdateProduct={handleUpdateProduct}
+              onDeleteProduct={handleDeleteProduct}
             />
-          </ErrorBoundary>
-
-          {lastMove && <UndoButton key={undoKey} onUndo={handleUndo} />}
-
-          <DragDropContext key={`dnd-${forceRerender}`} onDragEnd={onDragEnd}>
-            <ErrorBoundary>
-              <KanbanBoard columns={columns} products={products} userRole={userRole} allowedMoves={allowedMoves} />
-            </ErrorBoundary>
-          </DragDropContext>
-        </div>
-
-        <ErrorBoundary>
-          <AuditTrail auditTrail={auditTrail} products={products} />
-        </ErrorBoundary>
-
-        <AddProductDialog
-          isOpen={isAddProductDialogOpen}
-          onClose={() => setIsAddProductDialogOpen(false)}
-          onAddProduct={addProduct}
-        />
-
-        <EditProductDialog
-          isOpen={isEditProductDialogOpen}
-          onClose={() => setIsEditProductDialogOpen(false)}
-          product={selectedProduct}
-          onUpdateProduct={editProductDetails}
-          onDeleteProduct={deleteProduct}
-        />
+            {lastMove && <UndoButton onUndo={handleUndo} key={`undo-${undoKey}`} />}
+          </>
+        )}
       </div>
-    </div>
+    </ErrorBoundary>
   )
 }

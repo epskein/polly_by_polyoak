@@ -7,17 +7,20 @@ import App from "./App.tsx"
 import { AppWrapper } from "./components/common/PageMeta.tsx"
 import { ThemeProvider } from "./context/ThemeContext.tsx"
 import { AuthProvider } from "./context/AuthContext.tsx"
+import { SidebarProvider } from "./context/SidebarContext.tsx"
 import { BrowserRouter as Router } from "react-router-dom"
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
     <ThemeProvider>
       <AuthProvider>
-        <Router basename="/polly-by-polyoak/">
-          <AppWrapper>
-            <App />
-          </AppWrapper>
-        </Router>
+        <SidebarProvider>
+          <Router basename="/polly-by-polyoak/">
+            <AppWrapper>
+              <App />
+            </AppWrapper>
+          </Router>
+        </SidebarProvider>
       </AuthProvider>
     </ThemeProvider>
   </StrictMode>,

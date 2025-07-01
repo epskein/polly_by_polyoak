@@ -1,6 +1,6 @@
 import { useState } from "react";
 import ComponentCard from "../../common/ComponentCard";
-import TextArea from "../input/TextArea";
+import { Textarea } from "../input/TextArea";
 import Label from "../Label";
 
 export default function TextAreaInput() {
@@ -9,32 +9,33 @@ export default function TextAreaInput() {
   return (
     <ComponentCard title="Textarea input field">
       <div className="space-y-6">
-        {/* Default TextArea */}
+        {/* Default Textarea */}
         <div>
           <Label>Description</Label>
-          <TextArea
+          <Textarea
             value={message}
-            onChange={(value) => setMessage(value)}
+            onChange={(e) => setMessage(e.target.value)}
             rows={6}
           />
         </div>
 
-        {/* Disabled TextArea */}
+        {/* Disabled Textarea */}
         <div>
           <Label>Description</Label>
-          <TextArea rows={6} disabled />
+          <Textarea rows={6} disabled />
         </div>
 
-        {/* Error TextArea */}
+        {/* Error Textarea */}
         <div>
           <Label>Description</Label>
-          <TextArea
+          <Textarea
             rows={6}
             value={messageTwo}
-            error
-            onChange={(value) => setMessageTwo(value)}
-            hint="Please enter a valid message."
+            onChange={(e) => setMessageTwo(e.target.value)}
           />
+          <p className="mt-2 text-sm text-error-500">
+            Please enter a valid message.
+          </p>
         </div>
       </div>
     </ComponentCard>

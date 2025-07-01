@@ -208,8 +208,9 @@ export function useJobs() {
         .order("created_at", { ascending: false });
   
       if (error) throw error;
+      console.log("📦 Jobs fetched from Supabase:", data);
   
-      setJobs(data || []);
+      setJobs(data ?? []);
     } catch (err) {
       console.error("Error loading jobs:", err);
     } finally {
@@ -221,6 +222,14 @@ export function useJobs() {
   // Run once on mount
   useEffect(() => {
     refreshJobs();
+
+    // Re-fetch whenever the window regains focus (user navigates away & back)
+    const handleFocus = () => {
+      console.log("🔄 Window focused – refreshing jobs list …");
+      refreshJobs();
+    };
+    window.addEventListener("focus", handleFocus);
+    return () => window.removeEventListener("focus", handleFocus);
   }, []);
 
   return {

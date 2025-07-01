@@ -3,75 +3,118 @@
 import type React from "react"
 
 import { useState } from "react"
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "../ui/dialog";
-import Button from "../ui/button/Button"
-import Label from "../ui/label/label"
-import type {  Product } from "../../types/inventory"
-import Input from "../ui/input/Input"
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+  DialogTrigger,
+} from "../ui/dialog"
+import { Button } from "../ui/button/Button"
+import Label from "../form/Label"
+import type { Product } from "../../types/inventory"
+import { Input } from "../ui/input/Input"
 
 // In your AddProductDialog.tsx file
-type AddProductDialogProps = {
-    isOpen: boolean;
-    onClose: () => void;
-    onAddProduct: (product: Omit<Product, "id" | "color" | "itemsPerPalette" | "palettes">) => void;
-  };
+interface AddProductDialogProps {
+  onAddProduct: (newProduct: Omit<Product, "id">) => void
+  children: React.ReactNode
+}
+export function AddProductDialog({
+  onAddProduct,
+  children,
+}: AddProductDialogProps) {
+  const [newProduct, setNewProduct] = useState({
+    name: "",
+    category: "",
+    supplier: "",
+    cost: 0,
+    quantity: 0,
+    status: "in-stock",
+    arrivalDate: new Date().toISOString().split("T")[0],
+    color: "",
+    stock: 0,
+    code: "",
+    itemsPerPalette: 0,
+    palettes: 0,
+  })
+  const [isOpen, setIsOpen] = useState(false)
 
-export default function AddProductDialog({ isOpen, onClose, onAddProduct }: AddProductDialogProps) {
-  const [name, setName] = useState("")
-  const [code, setCode] = useState("")
-  const [stock, setStock] = useState("")
+  const handleChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>,
+  ) => {
+    const { name, value } = e.target
+    setNewProduct((prev) => ({ ...prev, [name]: value }))
+  }
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault()
-    const stockNumber = Number.parseInt(stock, 10)
-    if (name && code && !isNaN(stockNumber) && stockNumber >= 0) {
-      onAddProduct({ name, code, stock: stockNumber })
-      onClose()
-      setName("")
-      setCode("")
-      setStock("")
-    }
+  const handleAdd = () => {
+    onAddProduct(newProduct)
+    setIsOpen(false)
   }
 
   return (
-    <Dialog isOpen={isOpen} onClose={onClose}>
-      <DialogContent>
+    <Dialog open={isOpen} onOpenChange={setIsOpen}>
+      <DialogTrigger asChild>{children}</DialogTrigger>
+      <DialogContent className="bg-white dark:bg-gray-800">
         <DialogHeader>
           <DialogTitle>Add New Product</DialogTitle>
         </DialogHeader>
-        <form onSubmit={handleSubmit}>
-          <div className="grid gap-4 py-4">
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="name" >
-                Name
-              </Label>
-              <Input id="name" value={name} onChange={(e: { target: { value: React.SetStateAction<string> } }) => setName(e.target.value)} className="col-span-3" required />
-            </div>
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="code" >
-                Code
-              </Label>
-              <Input id="code" value={code} onChange={(e: { target: { value: React.SetStateAction<string> } }) => setCode(e.target.value)} className="col-span-3" required />
-            </div>
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="stock" >
-                Stock
-              </Label>
-              <Input
-                id="stock"
-                type="number"
-                min="0"
-                value={stock}
-                onChange={(e: { target: { value: React.SetStateAction<string> } }) => setStock(e.target.value)}
-                className="col-span-3"
-                required
-              />
-            </div>
+        <div className="space-y-4">
+          <div>
+            <Label htmlFor="name">Product Name</Label>
+            <Input
+              id="name"
+              name="name"
+              value={newProduct.name}
+              onChange={handleChange}
+            />
           </div>
-          <DialogFooter>
-            <Button >Add Product</Button>
-          </DialogFooter>
-        </form>
+          <div>
+            <Label htmlFor="category">Category</Label>
+            <Input
+              id="category"
+              name="category"
+              value={newProduct.category}
+              onChange={handleChange}
+            />
+          </div>
+          <div>
+            <Label htmlFor="supplier">Supplier</Label>
+            <Input
+              id="supplier"
+              name="supplier"
+              value={newProduct.supplier}
+              onChange={handleChange}
+            />
+          </div>
+          <div>
+            <Label htmlFor="cost">Cost</Label>
+            <Input
+              id="cost"
+              name="cost"
+              type="number"
+              value={newProduct.cost}
+              onChange={handleChange}
+            />
+          </div>
+          <div>
+            <Label htmlFor="quantity">Quantity</Label>
+            <Input
+              id="quantity"
+              name="quantity"
+              type="number"
+              value={newProduct.quantity}
+              onChange={handleChange}
+            />
+          </div>
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={() => setIsOpen(false)}>
+            Cancel
+          </Button>
+          <Button onClick={handleAdd}>Add Product</Button>
+        </DialogFooter>
       </DialogContent>
     </Dialog>
   )

@@ -117,7 +117,7 @@ export default function AuditTrail({ auditTrail, products }: AuditTrailProps) {
   }
 
   return (
-    <div className="w-1/4 bg-white p-4 overflow-y-auto">
+    <div className="w-full bg-white p-4 overflow-y-auto">
       <h2 className="text-xl font-bold mb-4">Audit Trail</h2>
       {auditTrail.length === 0 ? (
         <p>No activities recorded yet.</p>

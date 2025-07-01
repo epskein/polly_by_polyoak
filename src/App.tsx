@@ -1,69 +1,61 @@
-import { Routes, Route, Navigate } from "react-router-dom"
+import { Suspense } from "react"
+import { Routes, Route } from "react-router-dom"
+import AppLayout from "./layout/AppLayout"
+import { ProtectedRoute } from "./components/auth/ProtectedRoute"
+
+// Auth Pages
 import SignIn from "./pages/AuthPages/SignIn"
 import SignUp from "./pages/AuthPages/SignUp"
-import NotFound from "./pages/OtherPage/NotFound"
-import UserProfiles from "./pages/UserProfiles"
-import Videos from "./pages/UiElements/Videos"
-import Images from "./pages/UiElements/Images"
-import Alerts from "./pages/UiElements/Alerts"
-import Badges from "./pages/UiElements/Badges"
-import Avatars from "./pages/UiElements/Avatars"
-import Buttons from "./pages/UiElements/Buttons"
-import LineChart from "./pages/Charts/LineChart"
-import PieChart from "./pages/Charts/PieChart"
-import BarChart from "./pages/Charts/BarChart"
-import Calendar from "./pages/Calendar"
-import BasicTables from "./pages/Tables/BasicTables"
-import FormElements from "./pages/Forms/FormElements"
-import Blank from "./pages/Blank"
-import AppLayout from "./layout/AppLayout"
-import { ScrollToTop } from "./components/common/ScrollToTop"
+
+// Dashboard
 import Home from "./pages/Dashboard/Home"
-import InventoryTracker from "./pages/InventoryTracker/index"
-import { useAuthContext } from "./context/AuthContext"
-import Users from "./pages/UserManagement/users"
+
+// Other Pages
+import Calendar from "./pages/Calendar"
+import Profile from "./pages/UserProfiles"
+import FormElements from "./pages/Forms/FormElements"
+import Tables from "./pages/Tables/BasicTables"
+import BlankPage from "./pages/Blank"
+import LineChart from "./pages/Charts/LineChart"
+import BarChart from "./pages/Charts/BarChart"
+import PieChart from "./pages/Charts/PieChart"
 import QualityLabTracker from "./pages/QualityLabTracker/index"
+import IODTrackerPage from "./pages/IODTracker"
+import ProductInventoryManager from "./pages/InventoryTracker"
+import Users from "./pages/UserManagement/users"
+import PageNotFound from "./pages/OtherPage/NotFound"
 
 export default function App() {
-  const { user, loading } = useAuthContext()
-
-  if (loading) {
-    return <div className="flex items-center justify-center h-screen">Loading...</div>
-  }
-
   return (
-    <>
-      <ScrollToTop />
+    <Suspense fallback={<div>Loading...</div>}>
       <Routes>
-        <Route path="/signup" element={<SignUp />} />
-        <Route path="/signin" element={user ? <Navigate to="/" /> : <SignIn />} />
-
-        {/* Protected Routes */}
-        <Route element={user ? <AppLayout /> : <Navigate to="/signin" />}>
-          <Route index path="/" element={<Home />} />
-          <Route path="/profile" element={<UserProfiles />} />
+        <Route path="/auth/signin" element={<SignIn />} />
+        <Route path="/auth/signup" element={<SignUp />} />
+        <Route
+          path="/"
+          element={
+            <ProtectedRoute>
+              <AppLayout />
+            </ProtectedRoute>
+          }
+        >
+          <Route index element={<Home />} />
+          <Route path="/dashboard" element={<Home />} />
           <Route path="/calendar" element={<Calendar />} />
-          <Route path="/blank" element={<Blank />} />
-          <Route path="/form-elements" element={<FormElements />} />
-          <Route path="/basic-tables" element={<BasicTables />} />
-          <Route path="/users" element={<Users />} />
-          <Route path="/inventory-tracker" element={<InventoryTracker />} />
-          <Route path="/quality-lab-tracker" element={<QualityLabTracker />} />
-          <Route path="/alerts" element={<Alerts />} />
-          <Route path="/avatars" element={<Avatars />} />
-          <Route path="/badge" element={<Badges />} />
-          <Route path="/buttons" element={<Buttons />} />
-          <Route path="/images" element={<Images />} />
-          <Route path="/videos" element={<Videos />} />
+          <Route path="/profile" element={<Profile />} />
+          <Route path="/forms" element={<FormElements />} />
+          <Route path="/tables" element={<Tables />} />
+          <Route path="/blank" element={<BlankPage />} />
           <Route path="/line-chart" element={<LineChart />} />
           <Route path="/bar-chart" element={<BarChart />} />
           <Route path="/pie-chart" element={<PieChart />} />
+          <Route path="/quality-lab" element={<QualityLabTracker />} />
+          <Route path="/inventory" element={<ProductInventoryManager />} />
+          <Route path="/iod-tracker" element={<IODTrackerPage />} />
+          <Route path="/users" element={<Users />} />
         </Route>
-
-        {/* Fallback Route */}
-        <Route path="*" element={<NotFound />} />
+        <Route path="*" element={<PageNotFound />} />
       </Routes>
-    </>
+    </Suspense>
   )
-}
-
+} 
