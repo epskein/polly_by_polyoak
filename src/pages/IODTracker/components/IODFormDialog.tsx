@@ -21,7 +21,7 @@ export function IODFormDialog({ incident, children }: IODFormDialogProps) {
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>{children}</DialogTrigger>
-      <DialogContent className="sm:max-w-[800px]">
+      <DialogContent className="bg-white dark:bg-gray-800 sm:max-w-[800px]">
         <DialogHeader>
           <DialogTitle>
             {incident ? "Edit IOD Incident" : "Create New IOD Incident"}

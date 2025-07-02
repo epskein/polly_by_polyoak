@@ -1,17 +1,26 @@
 "use client"
 
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "../../../components/ui/card"
 import { IODDataTable } from "./IODDataTable"
 
 export function IODTableView() {
   return (
-    <div className="space-y-6">
-      <div>
-        <h2 className="text-2xl font-bold tracking-tight">IOD Incident Table</h2>
-        <p className="text-muted-foreground">
+    <Card className="bg-white dark:bg-gray-800">
+      <CardHeader>
+        <CardTitle>IOD Incident Table</CardTitle>
+        <CardDescription>
           Browse, search, and manage all IOD incidents.
-        </p>
-      </div>
-      <IODDataTable />
-    </div>
+        </CardDescription>
+      </CardHeader>
+      <CardContent>
+        <IODDataTable />
+      </CardContent>
+    </Card>
   )
 } 
