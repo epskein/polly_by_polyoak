@@ -1,9 +1,8 @@
 "use client"
 
 import type React from "react"
-
-import { useState } from "react"
-import { useNavigate } from "react-router"
+import { useState, useEffect } from "react"
+import { useNavigate, useLocation } from "react-router-dom"
 import { useAuth } from "../../context/AuthContext"
 import Label from "../form/Label"
 import Input from "../form/input/InputField"
@@ -14,7 +13,18 @@ export default function SignInForm() {
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
   const navigate = useNavigate()
-  const { signIn } = useAuth()
+  const location = useLocation()
+  const { signIn, user } = useAuth()
+  
+  // Redirect if already authenticated
+  useEffect(() => {
+    // If user is logged in, redirect them.
+    // The `from` property will exist if they were redirected from a protected route.
+    if (user) {
+      const from = location.state?.from?.pathname || "/"
+      navigate(from, { replace: true })
+    }
+  }, [user, navigate, location.state])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -22,14 +32,14 @@ export default function SignInForm() {
     setLoading(true)
 
     try {
-      const { error } = await signIn(email, password)
-      if (error) {
-        setError(error.message)
-      } else {
-        navigate("/")
+      const { error: signInError } = await signIn(email, password)
+      if (signInError) {
+        setError(signInError.message || "Failed to sign in. Please check your credentials.")
       }
+      // On success, the useEffect above will handle the redirect.
     } catch (err: any) {
-      setError(err.message || "An error occurred during sign in")
+      console.error("Sign in exception:", err)
+      setError(err.message || "An unexpected error occurred during sign in.")
     } finally {
       setLoading(false)
     }
@@ -41,6 +51,7 @@ export default function SignInForm() {
         <div className="mb-8 text-center">
           <h3 className="mb-2 text-2xl font-bold text-gray-800 dark:text-white/90">Sign In</h3>
           <p className="text-gray-500 dark:text-gray-400">Sign in to your account to continue</p>
+          <p className="mt-2 text-sm text-blue-500">Demo: test@example.com / password123</p>
         </div>
 
         <form onSubmit={handleSubmit}>
@@ -52,7 +63,6 @@ export default function SignInForm() {
               placeholder="Enter your email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              
             />
           </div>
 
@@ -64,11 +74,14 @@ export default function SignInForm() {
               placeholder="Enter your password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              
             />
           </div>
 
-          {error && <div className="mb-5 p-3 text-sm text-red-500 bg-red-50 rounded-lg">{error}</div>}
+          {error && (
+            <div className="mb-5 p-3 text-sm text-red-500 bg-red-50 rounded-lg">
+              {error}
+            </div>
+          )}
 
           <div className="mb-5">
             <button

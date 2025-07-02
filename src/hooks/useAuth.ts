@@ -1,71 +1,78 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback } from "react"
 import { supabase } from "../lib/supabase"
 import type { User, Session } from "@supabase/supabase-js"
 import type { Profile } from "../types/database.types"
 
-export const useAuth = () => {
+export function useAuthImplementation() {
   const [user, setUser] = useState<User | null>(null)
   const [session, setSession] = useState<Session | null>(null)
   const [profile, setProfile] = useState<Profile | null>(null)
-  const [loading, setLoading] = useState(true)
+  const [loading, setLoading] = useState<boolean>(true)
 
-  useEffect(() => {
-    async function getActiveSession() {
-      setLoading(true)
-
-       // maybe trigger logout or clear session manually
-      const { data } = await supabase.auth.getSession()
-
-      setSession(data.session)
-      setUser(data.session?.user ?? null)
-
-      if (data.session?.user) {
-        const { data: profileData } = await supabase
-          .from("profiles")
-          .select("*")
-          .eq("id", data.session.user.id)
-          .single()
-
-        setProfile(profileData)
-      }
-
-      setLoading(false)
+  const fetchProfile = useCallback(async (userToFetch: User | null) => {
+    if (!userToFetch) {
+      setProfile(null)
+      return
     }
-
-    getActiveSession()
-
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange(async (event, session) => {
-      setSession(session)
-      setUser(session?.user ?? null)
-
-      if (session?.user) {
-        const { data: profileData } = await supabase.from("profiles").select("*").eq("id", session.user.id).single()
-
-        setProfile(profileData)
-      } else {
-        setProfile(null)
-      }
-    })
-
-    return () => {
-      subscription.unsubscribe()
+    try {
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("*")
+        .eq("id", userToFetch.id)
+        .single()
+      if (error) throw error
+      setProfile(data)
+    } catch (err) {
+      console.error("Failed to fetch profile", err)
+      setProfile(null)
     }
   }, [])
 
-  const signIn = async (email: string, password: string) => {
-    const { data, error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
+  useEffect(() => {
+    // Check initial session. With persistSession: false, this will be null
+    // on page load, but it's good practice to have it.
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setSession(session)
+      setUser(session?.user ?? null)
+      fetchProfile(session?.user ?? null).finally(() => setLoading(false))
     })
-    return { data, error }
+
+    const { data: authListener } = supabase.auth.onAuthStateChange(
+      async (event, newSession) => {
+        setSession(newSession)
+        const newUser = newSession?.user ?? null
+        setUser(newUser)
+        await fetchProfile(newUser)
+      },
+    )
+
+    return () => {
+      authListener?.subscription.unsubscribe()
+    }
+  }, [fetchProfile])
+
+  const signIn = async (email: string, password: string) => {
+    setLoading(true)
+    try {
+      return await supabase.auth.signInWithPassword({ email, password })
+    } finally {
+      setLoading(false)
+    }
   }
 
   const signOut = async () => {
-    await supabase.auth.signOut()
+    setLoading(true)
+    try {
+      await supabase.auth.signOut()
+    } finally {
+      // Clear state manually in case onAuthStateChange is slow or fails
+      setUser(null)
+      setSession(null)
+      setProfile(null)
+      setLoading(false)
+    }
   }
 
   return { user, session, profile, signIn, signOut, loading }

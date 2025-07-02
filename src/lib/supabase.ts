@@ -1,21 +1,23 @@
 import { createClient } from "@supabase/supabase-js"
 import type { Database } from "../types/database.types"
 
-// Replace with your Supabase URL and anon key
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL as string
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY as string
+// It's recommended to use a .env.local file to store these values
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
+const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY
 
 if (!supabaseUrl || !supabaseAnonKey) {
-  console.error("Missing Supabase credentials. Please check your environment variables.")
+  console.error("Supabase URL and anonymous key are required. Make sure to set them in your .env.local file.")
 }
 
-export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+export const supabase = createClient<Database>(supabaseUrl, supabaseAnonKey, {
   auth: {
+    // This is set to false to meet the requirement that all users must sign in every time.
+    persistSession: false,
     autoRefreshToken: true,
-    persistSession: true,
     detectSessionInUrl: true,
   },
-});
+})
+
 // Helper function to get current user
 export const getCurrentUser = async () => {
   const {

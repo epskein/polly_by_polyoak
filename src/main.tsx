@@ -12,17 +12,17 @@ import { BrowserRouter as Router } from "react-router-dom"
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
-    <ThemeProvider>
-      <AuthProvider>
-        <SidebarProvider>
-          <Router basename="/polly-by-polyoak/">
+    <Router>
+      <ThemeProvider>
+        <AuthProvider>
+          <SidebarProvider>
             <AppWrapper>
               <App />
             </AppWrapper>
-          </Router>
-        </SidebarProvider>
-      </AuthProvider>
-    </ThemeProvider>
+          </SidebarProvider>
+        </AuthProvider>
+      </ThemeProvider>
+    </Router>
   </StrictMode>,
 )
 

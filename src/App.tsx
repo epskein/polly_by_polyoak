@@ -40,19 +40,19 @@ export default function App() {
           }
         >
           <Route index element={<Home />} />
-          <Route path="/dashboard" element={<Home />} />
-          <Route path="/calendar" element={<Calendar />} />
-          <Route path="/profile" element={<Profile />} />
-          <Route path="/forms" element={<FormElements />} />
-          <Route path="/tables" element={<Tables />} />
-          <Route path="/blank" element={<BlankPage />} />
-          <Route path="/line-chart" element={<LineChart />} />
-          <Route path="/bar-chart" element={<BarChart />} />
-          <Route path="/pie-chart" element={<PieChart />} />
-          <Route path="/quality-lab" element={<QualityLabTracker />} />
-          <Route path="/inventory" element={<ProductInventoryManager />} />
-          <Route path="/iod-tracker" element={<IODTrackerPage />} />
-          <Route path="/users" element={<Users />} />
+          <Route path="dashboard" element={<Home />} />
+          <Route path="calendar" element={<Calendar />} />
+          <Route path="profile" element={<Profile />} />
+          <Route path="forms" element={<FormElements />} />
+          <Route path="tables" element={<Tables />} />
+          <Route path="blank" element={<BlankPage />} />
+          <Route path="line-chart" element={<LineChart />} />
+          <Route path="bar-chart" element={<BarChart />} />
+          <Route path="pie-chart" element={<PieChart />} />
+          <Route path="quality-lab" element={<QualityLabTracker />} />
+          <Route path="inventory" element={<ProductInventoryManager />} />
+          <Route path="iod-tracker" element={<IODTrackerPage />} />
+          <Route path="users" element={<Users />} />
         </Route>
         <Route path="*" element={<PageNotFound />} />
       </Routes>
