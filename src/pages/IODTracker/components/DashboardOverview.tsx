@@ -5,6 +5,7 @@ import {
   startOfYear,
   endOfYear,
   format,
+  subDays,
 } from "date-fns"
 import { useIODData } from "../hooks/use-iod-data"
 import {
@@ -15,13 +16,15 @@ import {
   CardTitle,
 } from "../../../components/ui/card"
 import { CalendarDays, AlertTriangle, Clock } from "lucide-react"
-import { LineChart, BarChart } from "./chart"
+import { BarChart } from "./chart"
 import { DepartmentStatsTable } from "./DepartmentStatsTable"
 import { useChartData } from "../hooks/use-chart-data"
+import Highcharts from "highcharts"
+import HighchartsReact from "highcharts-react-official"
 
 export function DashboardOverview() {
   const { data: incidents, isLoading } = useIODData()
-  const { dailyIncidents, departmentIncidents } = useChartData(incidents || [])
+  const { departmentIncidents } = useChartData(incidents || [])
   const [metrics, setMetrics] = useState({
     totalInjuriesYTD: 0,
     accidentFreeDaysYTD: 0,
@@ -76,6 +79,124 @@ export function DashboardOverview() {
   }
 
   const currentYear = new Date().getFullYear()
+
+  // --- Highcharts Line Chart Configuration ---
+  // Dummy data for the last 30 days
+  const dummyData = Array.from({ length: 30 }, () =>
+    Math.floor(Math.random() * 6),
+  )
+
+  // Dates for the last 30 days for the x-axis
+  const categories = Array.from({ length: 30 }, (_, i) => {
+    const date = subDays(new Date(), 29 - i)
+    return format(date, "MMM d")
+  })
+
+  const lineChartOptions = {
+    chart: {
+      type: "spline",
+      backgroundColor: "transparent",
+      marginBottom: 70,
+    },
+    title: {
+      text: null,
+    },
+    xAxis: {
+      categories,
+      labels: {
+        style: {
+          color: "#6b7280", // gray-500
+        },
+      },
+    },
+    yAxis: {
+      title: {
+        text: "Number of Incidents",
+        style: {
+          color: "#6b7280",
+          fontSize: "12px",
+        },
+      },
+      labels: {
+        style: {
+          color: "#6b7280",
+        },
+      },
+      min: 0,
+    },
+    series: [
+      {
+        name: "Incidents",
+        data: dummyData,
+        color: "#f59e0b", // amber-500
+      },
+    ],
+    credits: {
+      enabled: false,
+    },
+    legend: {
+      enabled: false,
+    },
+  }
+  // --- End of Highcharts Configuration ---
+
+  // --- Highcharts Column Chart Configuration ---
+  const departmentCategories =
+    departmentIncidents?.map((d) => d.department) || []
+  const departmentSeriesData =
+    departmentIncidents?.map((d) => d.incidents) || []
+
+  const columnChartOptions = {
+    chart: {
+      type: "column",
+      backgroundColor: "transparent",
+      marginBottom: 70,
+    },
+    title: {
+      text: null,
+    },
+    xAxis: {
+      categories: departmentCategories,
+      labels: {
+        style: {
+          color: "#6b7280",
+        },
+      },
+    },
+    yAxis: {
+      title: {
+        text: "Number of Incidents",
+        style: {
+          color: "#6b7280",
+        },
+      },
+      labels: {
+        style: {
+          color: "#6b7280",
+        },
+      },
+      min: 0,
+    },
+    series: [
+      {
+        name: "Incidents",
+        data: departmentSeriesData,
+        color: "#3b82f6", // blue-500
+      },
+    ],
+    credits: {
+      enabled: false,
+    },
+    legend: {
+      enabled: false,
+    },
+    plotOptions: {
+      column: {
+        groupPadding: 0.1,
+      },
+    },
+  }
+  // --- End of Highcharts Column Configuration ---
 
   return (
     <Card className="bg-white dark:bg-gray-800">
@@ -142,23 +263,12 @@ export function DashboardOverview() {
                   Number of incidents per day (last 30 days)
                 </CardDescription>
               </CardHeader>
-              <CardContent className="h-[350px]">
-                {dailyIncidents && dailyIncidents.length > 0 ? (
-                  <LineChart
-                    data={dailyIncidents}
-                    index="date"
-                    categories={["incidents"]}
-                    colors={["#f59e0b"]}
-                    valueFormatter={(value) =>
-                      `${value} incident${value !== 1 ? "s" : ""}`
-                    }
-                    className="h-full"
-                  />
-                ) : (
-                  <div className="flex items-center justify-center h-full text-muted-foreground">
-                    No incident data available for the selected period
-                  </div>
-                )}
+              <CardContent className="h-[400px]">
+                <HighchartsReact
+                  highcharts={Highcharts}
+                  options={lineChartOptions}
+                  containerProps={{ style: { height: "100%" } }}
+                />
               </CardContent>
             </Card>
 
@@ -169,17 +279,12 @@ export function DashboardOverview() {
                   Department-wise incident count ({currentYear})
                 </CardDescription>
               </CardHeader>
-              <CardContent className="h-[350px]">
+              <CardContent className="h-[400px]">
                 {departmentIncidents && departmentIncidents.length > 0 ? (
-                  <BarChart
-                    data={departmentIncidents}
-                    index="department"
-                    categories={["incidents"]}
-                    colors={["#3b82f6"]}
-                    valueFormatter={(value) =>
-                      `${value} incident${value !== 1 ? "s" : ""}`
-                    }
-                    className="h-full"
+                  <HighchartsReact
+                    highcharts={Highcharts}
+                    options={columnChartOptions}
+                    containerProps={{ style: { height: "100%" } }}
                   />
                 ) : (
                   <div className="flex items-center justify-center h-full text-muted-foreground">

@@ -51,7 +51,7 @@ export default function SignInForm() {
         <div className="mb-8 text-center">
           <h3 className="mb-2 text-2xl font-bold text-gray-800 dark:text-white/90">Sign In</h3>
           <p className="text-gray-500 dark:text-gray-400">Sign in to your account to continue</p>
-          <p className="mt-2 text-sm text-blue-500">Demo: test@example.com / password123</p>
+          <p className="mt-2 text-sm text-blue-500">If you don't have an account, please contact your administrator.</p>
         </div>
 
         <form onSubmit={handleSubmit}>
