@@ -4,18 +4,18 @@ export interface Job {
   product_code: string;
   start_date: Date
   comments: string
-  revised_due_date: Date
+  revised_due_date?: Date
   due_date: Date
   submission_date: Date
-  completion_date: Date
+  completion_date?: Date
   outcome: string
   created_at: string
   assigned_to: string | null;
-  division_id: number | null;
-  task_category_id: number | null;
-  status_id: number | null;
+  division_id: string | number | null;
+  task_category_id: string | number | null;
+  status_id: string | number | null;
   product_description: string | null;
-  requestor_id: number | null;
+  requestor_id: string | number | null;
 
  
 

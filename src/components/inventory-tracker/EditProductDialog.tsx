@@ -93,7 +93,7 @@ export default function EditProductDialog({
         }}
       >
         <DialogTrigger asChild>{children}</DialogTrigger>
-        <DialogContent>
+        <DialogContent className="bg-white dark:bg-gray-800">
           <DialogHeader>
             <DialogTitle>Edit Product</DialogTitle>
           </DialogHeader>

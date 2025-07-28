@@ -37,20 +37,20 @@ interface JobDialogProps {
 const initialEmptyJob: Job = {
   id: null as any,
   title: "",
-  division_id: null,
-  task_category_id: null,
-  assigned_to: null,
+  division_id: "",
+  task_category_id: "",
+  assigned_to: "",
   product_code: "",
   product_description: "",
   submission_date: new Date(),
   start_date: new Date(),
   due_date: new Date(),
-  revised_due_date: new Date(),
-  completion_date: new Date(),
-  status_id: null,
+  revised_due_date: undefined,
+  completion_date: undefined,
+  status_id: "",
   comments: "",
   outcome: "",
-  requestor_id: null,
+  requestor_id: "",
   created_at: new Date().toISOString(),
 }
 
@@ -90,74 +90,75 @@ export function JobDialog({ open, setOpen, onSubmit, editJob }: JobDialogProps) 
         )
       } else {
         setJob({ ...initialEmptyJob })
+        // Reset date pickers for new job
+        setSubmissionDate(new Date())
+        setStartDate(new Date())
+        setDueDate(new Date())
+        setRevisedDueDate(undefined)
+        setCompletionDate(undefined)
       }
     }
   }, [open, editJob])
 
-  const fetchRequestors = async () => {
-    const { data, error } = await supabase.from("requestor").select("*");
-  
-    if (error) {
-      console.error("Failed to load requestors:", error);
-      return;
-    }
-  
-    if (data) {
-      const options = data.map((req) => ({ value: req.id, label: req.name }));
-      setRequestors(options);
-    }
-  };
-  
   useEffect(() => {
-    fetchRequestors();
-  }, []);
-  
-  
-
-useEffect(() => {
-  const fetchStatuses = async () => {
-    const { data, error } = await supabase.from("job_status").select("*");
-    if (!error && data) {
-      setStatuses(data.map((status) => ({
-        value: status.id,
-        label: status.description,
-      })));
+    const loadRequestors = async () => {
+      try {
+        const data = await fetchRequestors()
+        const options = data.map((r) => ({ value: String(r.id), label: r.name }))
+        setRequestors(options)
+      } catch (err) {
+        console.error("Failed to load requestors:", err)
+      }
     }
-  };
-  fetchStatuses();
-}, []);
+    if (open) {
+      loadRequestors()
+    }
+  }, [open])
+
+  useEffect(() => {
+    const fetchStatuses = async () => {
+      const { data, error } = await supabase.from("job_status").select("*")
+      if (!error && data) {
+        setStatuses(data.map((status) => ({
+          value: String(status.id),
+          label: status.description,
+        })))
+      }
+    }
+    fetchStatuses()
+  }, [])
 
   useEffect(() => {
     const fetchCategories = async () => {
-      const { data, error } = await supabase.from("quality_lab_task_category").select("*");
+      const { data, error } = await supabase.from("quality_lab_task_category").select("*")
       if (!error && data) {
-        setCategories(data.map((cat) => ({ value: cat.id, label: cat.description })));
+        setCategories(data.map((cat) => ({ value: String(cat.id), label: cat.description })))
       }
-    };
-    fetchCategories();
-  }, []);
+    }
+    fetchCategories()
+  }, [])
 
   useEffect(() => {
     const fetchDivisions = async () => {
-      const { data, error } = await supabase.from("production_plant").select("*");
+      const { data, error } = await supabase.from("production_plant").select("*")
       if (!error && data) {
-        setDivisions(data.map((div) => ({ value: div.id, label: div.name })));
+        setDivisions(data.map((div) => ({ value: String(div.id), label: div.name })))
       }
-    };
-    fetchDivisions();
-  }, []);
+    }
+    fetchDivisions()
+  }, [])
 
   useEffect(() => {
     const fetchAssignedUsers = async () => {
-      const { data: dept, error: deptError } = await supabase.from("polyoak_department").select("id").eq("name", "SHEQ").single();
-      if (deptError || !dept) return;
-      const { data: users, error: userError } = await supabase.from("profiles").select("id, first_name, last_name").eq("department_id", dept.id);
+      const { data: dept, error: deptError } = await supabase.from("polyoak_department").select("id").eq("name", "SHEQ").single()
+      if (deptError || !dept) return
+      const { data: users, error: userError } = await supabase.from("profiles").select("id, first_name, last_name").eq("department_id", dept.id)
       if (!userError && users) {
-        setAssignedToOptions(users.map((user) => ({ value: user.id, label: `${user.first_name} ${user.last_name}` })));
+        setAssignedToOptions(users.map((user) => ({ value: user.id, label: `${user.first_name} ${user.last_name}` })))
       }
-    };
-    fetchAssignedUsers();
-  }, []);
+    }
+    fetchAssignedUsers()
+  }, [])
 
   const handleChange = (
     field: keyof Job,
@@ -169,53 +170,37 @@ useEffect(() => {
   const handleSubmit = async () => {
     try {
       if (editJob) {
-        console.log("✏️ Updating job from dialog:", job);
-        onSubmit(job); // send full job object back to parent
+        console.log("✏️ Updating job from dialog:", job)
+        onSubmit(job) // send full job object back to parent
       } else {
-        const { id, created_at, ...jobWithoutId } = job;
-        console.log("🆕 Submitting NEW job (cleaned):", jobWithoutId);
-        onSubmit(jobWithoutId as Omit<Job, "id" | "created_at">);
+        const { id, created_at, ...jobWithoutId } = job
+        console.log("🆕 Submitting NEW job (cleaned):", jobWithoutId)
+        onSubmit(jobWithoutId as Omit<Job, "id" | "created_at">)
       }
   
-      setOpen(false); // close dialog
+      setOpen(false) // close dialog
     } catch (error) {
-      console.error("❌ Error in dialog handleSubmit:", error);
+      console.error("❌ Error in dialog handleSubmit:", error)
     }
-  };
-  
-  
-// // ✅ fetch and map
-// const fetchAndSetRequestors = async () => {
-//   try {
-//     const data = await fetchRequestors();
-//     const options = data.map((r) => ({ value: r.id, label: r.name }));
-//     setRequestors(options);
-//   } catch (err) {
-//     console.error("Failed to load requestors:", err);
-//   }
-// };
-
+  }
   
   const handleAddRequestor = async () => {
-    if (!newRequestorName.trim()) return;
+    if (!newRequestorName.trim()) return
     try {
-      const newRequestor = await createRequestor(newRequestorName);
-      setNewRequestorName("");
-      setRequestorDialogOpen(false);
-      //await fetchAndSetRequestors();
-      // 👇 Optionally auto-select the new one
-      await fetchRequestors(); // 🔁 this is supposed to refresh the dropdown
-      handleChange("requestor", newRequestor.id.toString());
+      const newRequestor = await createRequestor(newRequestorName)
+      setNewRequestorName("")
+      setRequestorDialogOpen(false)
+      await fetchRequestors() // 🔁 this is supposed to refresh the dropdown
+      handleChange("requestor_id", newRequestor.id.toString())
     } catch (err) {
-      console.error("Failed to add requestor:", err);
+      console.error("Failed to add requestor:", err)
     }
-  };
+  }
   
-
   return (
     <>
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="max-w-4xl">
+        <DialogContent className="max-w-4xl bg-white dark:bg-gray-800">
           <DialogHeader>
             <DialogTitle>{editJob ? "Edit Job" : "Create New Job"}</DialogTitle>
           </DialogHeader>
@@ -230,7 +215,7 @@ useEffect(() => {
                   <SelectTrigger>
                     <SelectValue placeholder="Select Division" />
                   </SelectTrigger>
-                  <SelectContent>
+                  <SelectContent className="bg-white dark:bg-gray-800">
                     {divisions.map((d) => (
                       <SelectItem key={d.value} value={d.value}>
                         {d.label}
@@ -249,7 +234,7 @@ useEffect(() => {
                     <SelectTrigger>
                       <SelectValue placeholder="Select Requestor" />
                     </SelectTrigger>
-                    <SelectContent>
+                    <SelectContent className="bg-white dark:bg-gray-800">
                       {requestors.map((r) => (
                         <SelectItem key={r.value} value={r.value}>
                           {r.label}
@@ -274,8 +259,8 @@ useEffect(() => {
                   <SelectTrigger>
                     <SelectValue placeholder="Select Category" />
                   </SelectTrigger>
-                  <SelectContent>
-                    {[{ value: "", label: "Select Category" }, ...categories].map((c) => (
+                  <SelectContent className="bg-white dark:bg-gray-800">
+                    {categories.map((c) => (
                       <SelectItem key={c.value} value={c.value}>
                         {c.label}
                       </SelectItem>
@@ -290,9 +275,9 @@ useEffect(() => {
                   value={job.assigned_to?.toString()}
                 >
                   <SelectTrigger>
-                    <SelectValue placeholder="Select user" />
+                    <SelectValue placeholder="Select User" />
                   </SelectTrigger>
-                  <SelectContent>
+                  <SelectContent className="bg-white dark:bg-gray-800">
                     {assignedToOptions.map((u) => (
                       <SelectItem key={u.value} value={u.value}>
                         {u.label}
@@ -320,7 +305,7 @@ useEffect(() => {
               <div>
                 <Label>Product Description</Label>
                 <Input
-                  value={job.product_description}
+                  value={job.product_description ?? ""}
                   onChange={(e) => handleChange("product_description", e.target.value)}
                 />
               </div>
@@ -333,8 +318,8 @@ useEffect(() => {
                   <SelectTrigger>
                     <SelectValue placeholder="Select Status" />
                   </SelectTrigger>
-                  <SelectContent>
-                    {[{ value: "", label: "Select Status" }, ...statuses].map((s) => (
+                  <SelectContent className="bg-white dark:bg-gray-800">
+                    {statuses.map((s) => (
                       <SelectItem key={s.value} value={s.value}>
                         {s.label}
                       </SelectItem>
@@ -424,7 +409,7 @@ useEffect(() => {
         open={requestorDialogOpen}
         onOpenChange={setRequestorDialogOpen}
       >
-        <DialogContent className="max-w-md mx-auto">
+        <DialogContent className="max-w-md mx-auto bg-white dark:bg-gray-800">
           <div className="p-6">
             <DialogHeader>
               <DialogTitle>Add New Requestor</DialogTitle>
@@ -450,5 +435,5 @@ useEffect(() => {
         </DialogContent>
       </Dialog>
     </>
-  );
-};
+  )
+}
