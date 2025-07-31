@@ -19,12 +19,14 @@ const KanbanCard: React.FC<KanbanCardProps> = ({ product }) => {
     setNodeRef,
     transform,
     transition,
+    isDragging,
   } = useSortable({ id: product.id });
 
   const style = {
     transform: CSS.Transform.toString(transform),
     transition,
     backgroundColor: product.color,
+    opacity: isDragging ? 0.5 : 1,
   };
 
   return (
@@ -33,7 +35,7 @@ const KanbanCard: React.FC<KanbanCardProps> = ({ product }) => {
       style={style}
       {...attributes}
       {...listeners}
-      className="p-4 mb-4 rounded-lg shadow-md cursor-grab"
+      className="p-4 mb-4 rounded-lg shadow-md cursor-grab active:cursor-grabbing hover:shadow-lg transition-shadow"
     >
       <p className="font-semibold text-white">{product.description}</p>
       <p className="text-sm text-gray-200">Supplier: {product.supplierCode}</p>
