@@ -1,10 +1,10 @@
 // src/types/inventory.ts
 export type Product = {
     id: string;
-    name: string;
+    name: string; // This will now be "Description"
     color: string;
-    stock: number;
-    code: string;
+    supplierCode: string;
+    stockCode: string;
     itemsPerPalette: number;
     palettes: number;
   }

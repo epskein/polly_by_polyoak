@@ -11,7 +11,7 @@ type ProductListProps = {
   products: Product[]
   onAddProduct: (newProduct: Omit<Product, "id">) => void
   onUpdateProduct: (
-    updatedProduct: Product,
+    updatedProduct: Partial<Product> & { id: string },
     action: "items-per-palette-change" | "palettes-change",
     change: number,
   ) => void
@@ -47,7 +47,6 @@ export default function ProductList({
                 style={{ backgroundColor: product.color }}
               ></div>
               <span className="font-medium">{product.name}</span>
-              <span className="ml-2">({product.code})</span>
               <EditProductDialog
                 product={product}
                 onUpdateProduct={(p) => onUpdateProduct(p, "palettes-change", 0)}

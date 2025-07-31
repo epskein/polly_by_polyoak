@@ -5,15 +5,14 @@ import type { Product } from "../../types/inventory"
 
 type ProductInventoryManagerProps = {
   product: Product
-  onUpdate: (product: Product, action: "items-per-palette-change" | "palettes-change", change: number) => void
+  onUpdate: (product: Partial<Product> & { id: string }, action: "items-per-palette-change" | "palettes-change", change: number) => void
 }
 
 export default function ProductInventoryManager({ product, onUpdate }: ProductInventoryManagerProps) {
   const handleItemsPerPaletteChange = (change: number) => {
     const newItemsPerPalette = Math.max(1, product.itemsPerPalette + change)
-    const newPalettes = Math.ceil(product.stock / newItemsPerPalette)
     onUpdate(
-      { ...product, itemsPerPalette: newItemsPerPalette, palettes: newPalettes },
+      { id: product.id, itemsPerPalette: newItemsPerPalette },
       "items-per-palette-change",
       change,
     )
@@ -21,8 +20,7 @@ export default function ProductInventoryManager({ product, onUpdate }: ProductIn
 
   const handlePalettesChange = (change: number) => {
     const newPalettes = Math.max(0, product.palettes + change)
-    const newStock = newPalettes * product.itemsPerPalette
-    onUpdate({ ...product, palettes: newPalettes, stock: newStock }, "palettes-change", change)
+    onUpdate({ id: product.id, palettes: newPalettes }, "palettes-change", change)
   }
 
   return (

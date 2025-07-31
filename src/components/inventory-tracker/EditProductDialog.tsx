@@ -15,6 +15,7 @@ import { Button } from "../ui/button/Button"
 import { Input } from "../ui/input/Input"
 import Label from "../form/Label"
 import type { Product } from "../../types/inventory"
+import { ColorPicker } from "../form/ColorPicker"
 import {
   AlertDialog,
   AlertDialogAction,
@@ -46,7 +47,9 @@ export default function EditProductDialog({
   if (!product) return null
 
   const [name, setName] = useState(product.name)
-  const [code, setCode] = useState(product.code)
+  const [supplierCode, setSupplierCode] = useState(product.supplierCode || '')
+  const [stockCode, setStockCode] = useState(product.stockCode || '')
+  const [color, setColor] = useState(product.color || "#ffffff")
   const [isOpen, setIsOpen] = useState(externalOpen ?? false)
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
 
@@ -59,17 +62,21 @@ export default function EditProductDialog({
   useEffect(() => {
     if (product) {
       setName(product.name)
-      setCode(product.code)
+      setSupplierCode(product.supplierCode || '')
+      setStockCode(product.stockCode || '')
+      setColor(product.color || "#ffffff")
     }
   }, [product])
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
-    if (product && name && code) {
+    if (product && name) {
       onUpdateProduct({
         ...product,
         name,
-        code,
+        supplierCode,
+        stockCode,
+        color,
       })
       setIsOpen(false)
     }
@@ -100,7 +107,7 @@ export default function EditProductDialog({
           <form onSubmit={handleSubmit}>
             <div className="grid gap-4 py-4">
               <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="edit-name">Name</Label>
+                <Label htmlFor="edit-name">Description</Label>
                 <Input
                   id="edit-name"
                   value={name}
@@ -110,13 +117,28 @@ export default function EditProductDialog({
                 />
               </div>
               <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="edit-code">Code</Label>
+                <Label htmlFor="edit-supplier-code">Supplier Code</Label>
                 <Input
-                  id="edit-code"
-                  value={code}
-                  onChange={(e) => setCode(e.target.value)}
+                  id="edit-supplier-code"
+                  value={supplierCode}
+                  onChange={(e) => setSupplierCode(e.target.value)}
                   className="col-span-3"
-                  required
+                />
+              </div>
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="edit-stock-code">Stock Code</Label>
+                <Input
+                  id="edit-stock-code"
+                  value={stockCode}
+                  onChange={(e) => setStockCode(e.target.value)}
+                  className="col-span-3"
+                />
+              </div>
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="edit-color">Color</Label>
+                <ColorPicker
+                  color={color}
+                  setColor={setColor}
                 />
               </div>
             </div>

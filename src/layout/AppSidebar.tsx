@@ -58,6 +58,11 @@ const navItems: NavItem[] = [
     path: '/inventory',
   },
   {
+    icon: <BoxCubeIcon />,
+    name: 'PROMINENT INVENTORY',
+    path: '/prominent-inventory',
+  },
+  {
     icon: <ListIcon />,
     name: 'Quality Lab Job Tracker',
     path: '/quality-lab',

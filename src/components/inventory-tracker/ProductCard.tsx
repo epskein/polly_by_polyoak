@@ -79,7 +79,8 @@ export default function ProductCard({
           >
             <div className="absolute top-1 right-2 text-xs font-bold">#{paletteNumber}</div>
             <h4 className="font-semibold">{product.name}</h4>
-            <p className="text-sm">Code: {product.code}</p>
+            <p className="text-sm">Supplier Code: {product.supplierCode}</p>
+            <p className="text-sm">Stock Code: {product.stockCode}</p>
             <p className="text-sm">Quantity: 1 palette ({product.itemsPerPalette} items)</p>
             {isDragDisabled() && (
               <div className="absolute inset-0 bg-black bg-opacity-10 flex items-center justify-center rounded-lg">

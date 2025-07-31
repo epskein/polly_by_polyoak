@@ -15,6 +15,7 @@ import { Button } from "../ui/button/Button"
 import Label from "../form/Label"
 import type { Product } from "../../types/inventory"
 import { Input } from "../ui/input/Input"
+import { ColorPicker } from "../form/ColorPicker"
 
 // In your AddProductDialog.tsx file
 interface AddProductDialogProps {
@@ -27,17 +28,15 @@ export function AddProductDialog({
 }: AddProductDialogProps) {
   const [newProduct, setNewProduct] = useState({
     name: "",
-    category: "",
-    supplier: "",
-    cost: 0,
-    quantity: 0,
+    supplierCode: "",
+    stockCode: "",
+    palettes: 0,
     status: "in-stock",
     arrivalDate: new Date().toISOString().split("T")[0],
-    color: "",
+    color: "#ffffff",
     stock: 0,
     code: "",
-    itemsPerPalette: 0,
-    palettes: 0,
+    itemsPerPalette: 25, // Default value
   })
   const [isOpen, setIsOpen] = useState(false)
 
@@ -46,6 +45,10 @@ export function AddProductDialog({
   ) => {
     const { name, value } = e.target
     setNewProduct((prev) => ({ ...prev, [name]: value }))
+  }
+
+  const handleSetColor = (color: string) => {
+    setNewProduct((prev) => ({ ...prev, color }))
   }
 
   const handleAdd = () => {
@@ -62,7 +65,7 @@ export function AddProductDialog({
         </DialogHeader>
         <div className="space-y-4">
           <div>
-            <Label htmlFor="name">Product Name</Label>
+            <Label htmlFor="name">Description</Label>
             <Input
               id="name"
               name="name"
@@ -71,42 +74,36 @@ export function AddProductDialog({
             />
           </div>
           <div>
-            <Label htmlFor="category">Category</Label>
+            <Label htmlFor="supplierCode">Supplier Code</Label>
             <Input
-              id="category"
-              name="category"
-              value={newProduct.category}
+              id="supplierCode"
+              name="supplierCode"
+              value={newProduct.supplierCode}
               onChange={handleChange}
             />
           </div>
           <div>
-            <Label htmlFor="supplier">Supplier</Label>
+            <Label htmlFor="stockCode">Stock Code</Label>
             <Input
-              id="supplier"
-              name="supplier"
-              value={newProduct.supplier}
+              id="stockCode"
+              name="stockCode"
+              value={newProduct.stockCode}
               onChange={handleChange}
             />
           </div>
           <div>
-            <Label htmlFor="cost">Cost</Label>
+            <Label htmlFor="palettes">No. of Palettes</Label>
             <Input
-              id="cost"
-              name="cost"
+              id="palettes"
+              name="palettes"
               type="number"
-              value={newProduct.cost}
+              value={newProduct.palettes}
               onChange={handleChange}
             />
           </div>
           <div>
-            <Label htmlFor="quantity">Quantity</Label>
-            <Input
-              id="quantity"
-              name="quantity"
-              type="number"
-              value={newProduct.quantity}
-              onChange={handleChange}
-            />
+            <Label htmlFor="color">Color</Label>
+            <ColorPicker color={newProduct.color} setColor={handleSetColor} />
           </div>
         </div>
         <DialogFooter>
