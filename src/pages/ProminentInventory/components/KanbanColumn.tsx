@@ -5,10 +5,14 @@ import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable'
 import { Product } from '../types';
 import KanbanCard from './KanbanCard';
 
+interface KanbanProduct extends Product {
+  paletteIndex: number;
+}
+
 interface KanbanColumnProps {
   id: string;
   title: string;
-  products: Product[];
+  products: KanbanProduct[];
 }
 
 const ALLOWED_MOVEMENTS = {
@@ -20,6 +24,10 @@ const ALLOWED_MOVEMENTS = {
 const KanbanColumn: React.FC<KanbanColumnProps> = ({ id, title, products }) => {
   const { setNodeRef, isOver, active } = useDroppable({
     id,
+    data: {
+      type: 'column',
+      accepts: ['card'],
+    },
   });
 
   const isValidDropTarget = () => {
