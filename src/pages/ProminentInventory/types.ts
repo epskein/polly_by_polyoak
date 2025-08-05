@@ -1,18 +1,14 @@
-// src/pages/ProminentInventory/types.ts
+import { Database } from "../../types/database.types";
 
-export interface Product {
-  id: string;
-  description: string;
-  supplierCode: string;
-  stockCode: string;
-  itemsPerPalette: number;
-  palettes: number;
-  color: string;
-}
+export type Product = Database['public']['Tables']['products']['Row'];
 
 export interface AuditLog {
   id: string;
   user: string;
   action: string;
   timestamp: string;
+}
+
+export interface KanbanProduct extends Product {
+  paletteIndex: number;
 }

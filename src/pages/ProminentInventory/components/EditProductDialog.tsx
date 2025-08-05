@@ -21,7 +21,7 @@ const EditProductDialog: React.FC<EditProductDialogProps> = ({ isOpen, onClose, 
     const { name, value } = e.target;
     setEditedProduct((prev) => ({
       ...prev,
-      [name]: name === 'palettes' || name === 'itemsPerPalette' ? parseInt(value) || 0 : value,
+      [name]: (name === 'items_per_palette' || name === 'palettes') ? parseInt(value) || 0 : value,
     }));
   };
 
@@ -68,8 +68,8 @@ const EditProductDialog: React.FC<EditProductDialogProps> = ({ isOpen, onClose, 
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Supplier Code</label>
             <input
               type="text"
-              name="supplierCode"
-              value={editedProduct.supplierCode}
+              name="supplier_code"
+              value={editedProduct.supplier_code ?? ''}
               onChange={handleChange}
               className="mt-1 block w-full h-12 rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm dark:bg-gray-700 dark:border-gray-600 dark:text-white"
             />
@@ -78,8 +78,8 @@ const EditProductDialog: React.FC<EditProductDialogProps> = ({ isOpen, onClose, 
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Stock Code</label>
             <input
               type="text"
-              name="stockCode"
-              value={editedProduct.stockCode}
+              name="stock_code"
+              value={editedProduct.stock_code ?? ''}
               onChange={handleChange}
               className="mt-1 block w-full h-12 rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm dark:bg-gray-700 dark:border-gray-600 dark:text-white"
             />
@@ -88,8 +88,8 @@ const EditProductDialog: React.FC<EditProductDialogProps> = ({ isOpen, onClose, 
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Items per Palette</label>
             <input
               type="number"
-              name="itemsPerPalette"
-              value={editedProduct.itemsPerPalette}
+              name="items_per_palette"
+              value={editedProduct.items_per_palette}
               onChange={handleChange}
               className="mt-1 block w-full h-12 rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm dark:bg-gray-700 dark:border-gray-600 dark:text-white"
             />

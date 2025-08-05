@@ -4965,7 +4965,7 @@ Lines added: 38, lines removed: 35
 -       <div className="flex h-full bg-gray-100" key={forceRerender}>
 -         <div className="flex-1 flex flex-col p-4">
 -           <div className="flex justify-between items-center mb-8">
--             <h1 className="text-4xl font-bold italic">PROMINENT INVENTORY TRACKER</h1>
+-             <h1 className="text-4xl font-bold italic">Prominent Inventory Tracker</h1>
 -             <div className="bg-white px-4 py-2 rounded-lg shadow">
 -               <p className="text-sm font-medium">User: {userName}</p>
 -               <p className="text-sm font-medium">Role: {userRole}</p>

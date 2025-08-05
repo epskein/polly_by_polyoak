@@ -59,7 +59,7 @@ const navItems: NavItem[] = [
   },
   {
     icon: <BoxCubeIcon />,
-    name: 'PROMINENT INVENTORY',
+    name: 'Prominent Inventory Tracker',
     path: '/prominent-inventory',
   },
   {

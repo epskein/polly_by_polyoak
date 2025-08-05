@@ -2,25 +2,30 @@
 import React, { useState } from 'react';
 import { Product } from '../types';
 
+type ProductData = Omit<Product, 'id' | 'created_at'>;
+
 interface AddProductDialogProps {
   isOpen: boolean;
   onClose: () => void;
-  onSave: (product: Omit<Product, 'id'>) => void;
+  onSave: (product: ProductData) => void;
 }
 
 const AddProductDialog: React.FC<AddProductDialogProps> = ({ isOpen, onClose, onSave }) => {
-  const [product, setProduct] = useState({
+  const [product, setProduct] = useState<ProductData>({
     description: '',
-    supplierCode: '',
-    stockCode: '',
-    itemsPerPalette: 0,
+    supplier_code: '',
+    stock_code: '',
+    items_per_palette: 0,
     palettes: 0,
     color: '#ffffff',
   });
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
-    setProduct((prev) => ({ ...prev, [name]: value }));
+    setProduct((prev) => ({ 
+      ...prev, 
+      [name]: (name === 'items_per_palette' || name === 'palettes') ? parseInt(value) || 0 : value 
+    }));
   };
 
   const handleSave = () => {
@@ -29,9 +34,9 @@ const AddProductDialog: React.FC<AddProductDialogProps> = ({ isOpen, onClose, on
     // Reset form
     setProduct({
       description: '',
-      supplierCode: '',
-      stockCode: '',
-      itemsPerPalette: 0,
+      supplier_code: '',
+      stock_code: '',
+      items_per_palette: 0,
       palettes: 0,
       color: '#ffffff',
     });
@@ -60,8 +65,8 @@ const AddProductDialog: React.FC<AddProductDialogProps> = ({ isOpen, onClose, on
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Supplier Code</label>
             <input
               type="text"
-              name="supplierCode"
-              value={product.supplierCode}
+              name="supplier_code"
+              value={product.supplier_code ?? ''}
               onChange={handleChange}
               className="mt-1 block w-full h-12 rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm dark:bg-gray-700 dark:border-gray-600 dark:text-white"
             />
@@ -70,8 +75,8 @@ const AddProductDialog: React.FC<AddProductDialogProps> = ({ isOpen, onClose, on
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Stock Code</label>
             <input
               type="text"
-              name="stockCode"
-              value={product.stockCode}
+              name="stock_code"
+              value={product.stock_code ?? ''}
               onChange={handleChange}
               className="mt-1 block w-full h-12 rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm dark:bg-gray-700 dark:border-gray-600 dark:text-white"
             />
@@ -80,8 +85,8 @@ const AddProductDialog: React.FC<AddProductDialogProps> = ({ isOpen, onClose, on
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Items per Palette</label>
             <input
               type="number"
-              name="itemsPerPalette"
-              value={product.itemsPerPalette}
+              name="items_per_palette"
+              value={product.items_per_palette}
               onChange={handleChange}
               className="mt-1 block w-full h-12 rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm dark:bg-gray-700 dark:border-gray-600 dark:text-white"
             />

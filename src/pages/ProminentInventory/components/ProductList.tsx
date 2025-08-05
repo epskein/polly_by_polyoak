@@ -57,18 +57,18 @@ const ProductList: React.FC<ProductListProps> = ({ onAddProduct, onUpdateProduct
                 className="w-6 h-6 rounded-full"
                 style={{ backgroundColor: product.color }}
               ></span>
-              <div>
-                <h3 className="font-medium text-gray-800 dark:text-white">{product.description}</h3>
-                <div className="text-sm text-gray-500 dark:text-gray-400">
-                  <span>Stock: {product.stockCode}</span>
-                  <span className="mx-2">|</span>
-                  <span>Supplier: {product.supplierCode}</span>
-                  <span className="mx-2">|</span>
-                  <span>Palettes: {product.palettes}</span>
-                  <span className="mx-2">|</span>
-                  <span>Items per Palette: {product.itemsPerPalette}</span>
-                </div>
-              </div>
+                                        <div>
+                            <h3 className="font-medium text-gray-800 dark:text-white">{product.description}</h3>
+                            <div className="text-sm text-gray-500 dark:text-gray-400">
+                              <span>Stock: {product.stock_code}</span>
+                              <span className="mx-2">|</span>
+                              <span>Supplier: {product.supplier_code}</span>
+                              <span className="mx-2">|</span>
+                              <span>Palettes: {product.palettes}</span>
+                              <span className="mx-2">|</span>
+                              <span>Items per Palette: {product.items_per_palette}</span>
+                            </div>
+                          </div>
             </div>
             <button
               onClick={() => handleEditClick(product)}
