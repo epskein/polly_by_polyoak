@@ -31,50 +31,65 @@ export function useAuthImplementation() {
   }, [])
 
   useEffect(() => {
-    // Check initial session. With persistSession: false, this will be null
-    // on page load, but it's good practice to have it.
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session)
-      setUser(session?.user ?? null)
-      fetchProfile(session?.user ?? null).finally(() => setLoading(false))
-    })
+    // This effect runs once on mount to get the initial session and set up the listener.
+    const getInitialSession = async () => {
+      const { data: { session: initialSession } } = await supabase.auth.getSession();
+      
+      // If a session is found, fetch the profile
+      if (initialSession) {
+        setUser(initialSession.user);
+        setSession(initialSession);
+        await fetchProfile(initialSession.user);
+      }
+      
+      // IMPORTANT: Set loading to false only after the initial check is complete.
+      setLoading(false);
 
-    const { data: authListener } = supabase.auth.onAuthStateChange(
-      async (event, newSession) => {
-        setSession(newSession)
-        const newUser = newSession?.user ?? null
-        setUser(newUser)
-        await fetchProfile(newUser)
-      },
-    )
+      // Set up the auth state change listener
+      const { data: { subscription } } = supabase.auth.onAuthStateChange(
+        async (event, newSession) => {
+          // When auth state changes, update the user, session, and profile.
+          setUser(newSession?.user ?? null);
+          setSession(newSession);
+          if (newSession?.user) {
+            await fetchProfile(newSession.user);
+          } else {
+            setProfile(null);
+          }
+        }
+      );
+
+      return () => {
+        subscription?.unsubscribe();
+      };
+    };
+
+    const unsubscribe = getInitialSession();
 
     return () => {
-      authListener?.subscription.unsubscribe()
-    }
-  }, [fetchProfile])
+      // Cleanup the subscription when the component unmounts.
+      unsubscribe.then(cleanup => cleanup && cleanup());
+    };
+  }, [fetchProfile]);
+
 
   const signIn = async (email: string, password: string) => {
     setLoading(true)
     try {
       return await supabase.auth.signInWithPassword({ email, password })
     } finally {
-      setLoading(false)
+       // The onAuthStateChange listener will handle setting user/profile state.
+       // We'll set loading to false here to ensure responsiveness if the listener is slow.
+       setLoading(false)
     }
   }
 
   const signOut = async () => {
     setLoading(true)
-    try {
-      await supabase.auth.signOut()
-    } finally {
-      // Clear state manually in case onAuthStateChange is slow or fails
-      setUser(null)
-      setSession(null)
-      setProfile(null)
-      setLoading(false)
-    }
+    await supabase.auth.signOut()
+    // The onAuthStateChange listener will clear the user/profile state.
+    setLoading(false)
   }
 
   return { user, session, profile, signIn, signOut, loading }
 }
-

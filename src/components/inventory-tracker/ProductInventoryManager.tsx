@@ -2,25 +2,68 @@
 import { FaPlus, FaMinus } from "react-icons/fa"
 import { Button } from "../ui/button/Button"
 import type { Product } from "../../types/inventory"
+import { useAuthImplementation } from "../../hooks/useAuth"
+import { addPallet, deletePallet, createAuditLog } from "../../pages/InventoryTracker/lib/actions"
 
 type ProductInventoryManagerProps = {
   product: Product
-  onUpdate: (product: Partial<Product> & { id: string }, action: "items-per-palette-change" | "palettes-change", change: number) => void
+  onUpdate: (product: Partial<Product> & { id: string }) => void
 }
 
 export default function ProductInventoryManager({ product, onUpdate }: ProductInventoryManagerProps) {
-  const handleItemsPerPaletteChange = (change: number) => {
+  const { user } = useAuthImplementation()
+
+  const handleItemsPerPaletteChange = async (change: number) => {
+    if (!user) {
+        console.error("User not authenticated.")
+        return
+    }
+
     const newItemsPerPalette = Math.max(1, product.itemsPerPalette + change)
-    onUpdate(
-      { id: product.id, itemsPerPalette: newItemsPerPalette },
-      "items-per-palette-change",
-      change,
-    )
+    onUpdate({ id: product.id, itemsPerPalette: newItemsPerPalette })
+
+    await createAuditLog({
+        user_id: user.id,
+        action_type: 'EDIT_PRODUCT',
+        product_id: product.id,
+        details: {
+            field: 'itemsPerPalette',
+            oldValue: product.itemsPerPalette,
+            newValue: newItemsPerPalette,
+            change: change
+        }
+    })
   }
 
-  const handlePalettesChange = (change: number) => {
-    const newPalettes = Math.max(0, product.palettes + change)
-    onUpdate({ id: product.id, palettes: newPalettes }, "palettes-change", change)
+  const handlePalettesChange = async (change: number) => {
+    if (!user) {
+        console.error("User not authenticated.")
+        return
+    }
+
+    const newPalettesCount = Math.max(0, product.palettes + change)
+    onUpdate({ id: product.id, palettes: newPalettesCount })
+
+    if (change > 0) {
+        // Add a new pallet
+        const newPallet = await addPallet(product.id, "In Stock") // Default status
+        if (newPallet) {
+            await createAuditLog({
+                user_id: user.id,
+                action_type: 'NEW_PRODUCT', // Or a more specific pallet action
+                product_id: product.id,
+                pallet_id: newPallet.id,
+                details: {
+                    change: 'Added 1 pallet'
+                }
+            })
+        }
+    } else {
+        // This is a simplified deletion logic. It assumes we can delete any pallet,
+        // which might not be the case. A more robust implementation would need to
+        // identify which specific pallet to delete.
+        console.warn("Pallet deletion from here is not fully implemented and will not delete a specific pallet record.")
+    }
   }
 
   return (
@@ -48,4 +91,3 @@ export default function ProductInventoryManager({ product, onUpdate }: ProductIn
     </div>
   )
 }
-

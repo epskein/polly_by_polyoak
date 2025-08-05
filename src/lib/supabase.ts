@@ -11,8 +11,8 @@ if (!supabaseUrl || !supabaseAnonKey) {
 
 export const supabase = createClient<Database>(supabaseUrl, supabaseAnonKey, {
   auth: {
-    // This is set to false to meet the requirement that all users must sign in every time.
-    persistSession: false,
+    // Setting persistSession to true to keep the user logged in across page refreshes.
+    persistSession: true,
     autoRefreshToken: true,
     detectSessionInUrl: true,
   },

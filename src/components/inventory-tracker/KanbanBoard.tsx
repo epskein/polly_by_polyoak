@@ -1,6 +1,6 @@
 "use client"
 
-import type { Column, Product } from "../../types/inventory"
+import type { Column, Product, Pallet } from "../../types/inventory"
 import { Droppable } from "react-beautiful-dnd"
 import ProductCard from "./ProductCard"
 import ErrorBoundary from "./ErrorBoundary"
@@ -12,12 +12,16 @@ import html2canvas from "html2canvas"
 type KanbanBoardProps = {
   columns: Column[]
   products: Product[]
+  pallets: Pallet[] // Now receives pallets directly
   userRole?: string
   allowedMoves?: Record<string, Record<string, string[]>>
 }
 
-export default function KanbanBoard({ columns, products, userRole = "viewer", allowedMoves }: KanbanBoardProps) {
+export default function KanbanBoard({ columns, products, pallets, userRole = "viewer", allowedMoves }: KanbanBoardProps) {
   const [exporting, setExporting] = useState<string | null>(null)
+
+  const getPalletById = (palletId: string) => pallets.find(p => p.id === palletId);
+  const getProductById = (productId: string) => products.find(p => p.id === productId);
 
   const exportToPDF = async (columnId: string, columnTitle: string) => {
     setExporting(columnId)
@@ -63,26 +67,24 @@ export default function KanbanBoard({ columns, products, userRole = "viewer", al
               {(provided) => (
                 <div {...provided.droppableProps} ref={provided.innerRef} className="p-4 min-h-[200px]">
                   <ErrorBoundary>
-                    {column.productIds.map((productId, index) => {
-                      try {
-                        const [baseId, paletteNumber] = productId.split("-")
-                        const product = products.find((p) => p.id === baseId)
-                        if (!product) return null
-                        return (
-                          <ProductCard
-                            key={productId}
-                            product={product}
-                            paletteNumber={Number.parseInt(paletteNumber)}
-                            index={index}
-                            userRole={userRole}
-                            allowedMoves={allowedMoves}
-                            sourceColumnId={column.id}
-                          />
-                        )
-                      } catch (error) {
-                        console.error("Error processing product ID:", productId, error)
-                        return null
-                      }
+                    {column.productIds.map((palletId, index) => {
+                      const pallet = getPalletById(palletId);
+                      if (!pallet) return null;
+
+                      const product = getProductById(pallet.product_id);
+                      if (!product) return null;
+                      
+                      return (
+                        <ProductCard
+                          key={pallet.id}
+                          product={product}
+                          pallet={pallet} // Pass the full pallet object
+                          index={index}
+                          userRole={userRole}
+                          allowedMoves={allowedMoves}
+                          sourceColumnId={column.id}
+                        />
+                      )
                     })}
                   </ErrorBoundary>
                   {provided.placeholder}

@@ -1,12 +1,12 @@
 "use client"
 
-import type { Product } from "../../types/inventory"
+import type { Product, Pallet } from "../../types/inventory"
 import { Draggable } from "react-beautiful-dnd"
 import { useCallback } from "react"
 
 type ProductCardProps = {
   product: Product
-  paletteNumber: number
+  pallet: Pallet
   index: number
   userRole?: string
   allowedMoves?: Record<string, Record<string, string[]>>
@@ -15,7 +15,7 @@ type ProductCardProps = {
 
 export default function ProductCard({
   product,
-  paletteNumber,
+  pallet,
   index,
   userRole = "viewer",
   allowedMoves,
@@ -23,48 +23,35 @@ export default function ProductCard({
 }: ProductCardProps) {
   const getContrastColor = useCallback((hexColor: string) => {
     try {
-      // For HSL colors
       if (hexColor.startsWith("hsl")) {
-        // Extract the lightness value
-        const match = hexColor.match(/hsl$\d+,\s*\d+%,\s*(\d+)%$/)
-        if (match && match[1]) {
-          const lightness = Number.parseInt(match[1], 10)
+        const match = hexColor.match(/hsl\((\d+),\s*(\d+)%,\s*(\d+)%\)/)
+        if (match) {
+          const lightness = Number.parseInt(match[3], 10)
           return lightness > 50 ? "#000000" : "#FFFFFF"
         }
-        return "#FFFFFF" // Default to white if parsing fails
+        return "#FFFFFF"
       }
 
-      // For hex colors
-      // Convert hex to RGB
       const r = Number.parseInt(hexColor.slice(1, 3), 16)
       const g = Number.parseInt(hexColor.slice(3, 5), 16)
       const b = Number.parseInt(hexColor.slice(5, 7), 16)
-
-      // Calculate luminance
       const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255
-
-      // Return black for light colors, white for dark colors
       return luminance > 0.5 ? "#000000" : "#FFFFFF"
     } catch (e) {
       console.error("Error parsing color:", e)
-      return "#FFFFFF" // Default to white if any error occurs
+      return "#FFFFFF"
     }
   }, [])
 
-  // Check if dragging is allowed based on user role and source column
   const isDragDisabled = useCallback(() => {
     if (!allowedMoves || !sourceColumnId || !userRole) return false
-
-    // If the role doesn't have any permissions defined, disable dragging
     if (!allowedMoves[userRole]) return true
-
-    // If the source column doesn't have any allowed destinations for this role, disable dragging
     return !allowedMoves[userRole][sourceColumnId] || allowedMoves[userRole][sourceColumnId].length === 0
   }, [allowedMoves, sourceColumnId, userRole])
 
   try {
     return (
-      <Draggable draggableId={`${product.id}-${paletteNumber}`} index={index} isDragDisabled={isDragDisabled()}>
+      <Draggable draggableId={pallet.id} index={index} isDragDisabled={isDragDisabled()}>
         {(provided, snapshot) => (
           <div
             ref={provided.innerRef}
@@ -73,11 +60,13 @@ export default function ProductCard({
             className={`rounded-lg p-4 mb-2 shadow relative ${isDragDisabled() ? "opacity-70 cursor-not-allowed" : ""} ${snapshot.isDragging ? "z-10" : ""}`}
             style={{
               ...provided.draggableProps.style,
-              backgroundColor: product.color || "#CCCCCC", // Fallback color if product.color is undefined
+              backgroundColor: product.color || "#CCCCCC",
               color: getContrastColor(product.color || "#CCCCCC"),
             }}
           >
-            <div className="absolute top-1 right-2 text-xs font-bold">#{paletteNumber}</div>
+            <div className="absolute top-1 right-2 text-xs font-bold">
+              #{pallet.id.substring(0, 4)}...
+            </div>
             <h4 className="font-semibold">{product.name}</h4>
             <p className="text-sm">Supplier Code: {product.supplierCode}</p>
             <p className="text-sm">Stock Code: {product.stockCode}</p>
@@ -95,6 +84,6 @@ export default function ProductCard({
     )
   } catch (error) {
     console.error("Error rendering ProductCard:", error)
-    return null // Return null if there's an error, preventing the app from crashing
+    return null
   }
 }

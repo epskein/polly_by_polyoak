@@ -10,12 +10,9 @@ import EditProductDialog from "./EditProductDialog"
 type ProductListProps = {
   products: Product[]
   onAddProduct: (newProduct: Omit<Product, "id">) => void
-  onUpdateProduct: (
-    updatedProduct: Partial<Product> & { id: string },
-    action: "items-per-palette-change" | "palettes-change",
-    change: number,
-  ) => void
+  onUpdateProduct: (updatedProduct: Partial<Product> & { id: string }) => void
   onDeleteProduct: (productId: string) => void
+  onEditProduct: (product: Product) => void
 }
 
 export default function ProductList({
@@ -23,6 +20,7 @@ export default function ProductList({
   onAddProduct,
   onUpdateProduct,
   onDeleteProduct,
+  onEditProduct
 }: ProductListProps) {
   return (
     <div className="mb-4">
@@ -47,15 +45,9 @@ export default function ProductList({
                 style={{ backgroundColor: product.color }}
               ></div>
               <span className="font-medium">{product.name}</span>
-              <EditProductDialog
-                product={product}
-                onUpdateProduct={(p) => onUpdateProduct(p, "palettes-change", 0)}
-                onDeleteProduct={onDeleteProduct}
-              >
-                <Button size="sm" className="ml-2">
+              <Button size="sm" className="ml-2" onClick={() => onEditProduct(product)}>
                   <FaEdit className="h-4 w-4" />
-                </Button>
-              </EditProductDialog>
+              </Button>
             </div>
             <ProductInventoryManager
               product={product}
@@ -67,4 +59,3 @@ export default function ProductList({
     </div>
   )
 }
-

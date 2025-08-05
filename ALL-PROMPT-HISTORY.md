@@ -30,4 +30,17 @@
 
 ## 2024-12-19 23:10:00
 **Prompt:** Great the authentication now work again as it should, however, I am still not able to access the Quality Lab Job Tracker-module or the Inventory Tracker-module in my project. I just simply get 404 not found errors. Please fix this
-**Description:** Resolved 404 Not Found errors for Quality Lab Job Tracker and Inventory Tracker modules. The issue was a mismatch between the link paths in AppSidebar.tsx and the route paths defined in App.tsx. I corrected the 'path' for 'Inventory Tracker' to '/inventory' and for 'Quality Lab Job Tracker' to '/quality-lab' in the navItems array in AppSidebar.tsx to match the application's routing configuration. This ensures that the sidebar links now correctly navigate to the intended routes. 
+**Description:** Resolved 404 Not Found errors for Quality Lab Job Tracker and Inventory Tracker modules. The issue was a mismatch between the link paths in AppSidebar.tsx and the route paths defined in App.tsx. I corrected the 'path' for 'Inventory Tracker' to '/inventory' and for 'Quality Lab Job Tracker' to '/quality-lab' in the navItems array in AppSidebar.tsx to match the application's routing configuration. This ensures that the sidebar links now correctly navigate to the intended routes.
+
+## 2024-07-31
+**Prompt:** The Product items are now saving and updating correctly to the Supabase Database.
+I now want you to add backend functionality for the Audit Trail items as well.
+Save every action made, the user that made it, and the time.
+Categorise each action according to: Pallete Move, New Product, Product Edit, Product Delete, store this on each Audit trail item so that we can retreive items by this group later.
+Also assign each created pallete to a Pallete item so that we can store/track the catgeory/column of a particular pallete.
+
+Give me a short summary of the flow functionality the app will have to achieve this and then give me the proposed database Schemas before creating the SQL script needed to create the tables, FK relations, and RLS Policies to add this integration to the app.
+**Description:** Created a summary of the application flow for audit trail and pallet tracking. Proposed a database schema with two new tables: `pallets` and `audit_log`. `pallets` tracks individual pallet information including product and status. `audit_log` records user actions like `NEW_PRODUCT`, `EDIT_PRODUCT`, `DELETE_PRODUCT`, and `PALLET_MOVE`, linking to the user, product, and pallet involved.
+
+**Prompt:** Go ahead and generate the SQL Scripts needed to create the backend for these 2 tables
+**Description:** Generated the SQL script `Database Schema Creation SQL Scripts/InventoryTracker-Audit-Schema.sql` to create the `pallets` and `audit_log` tables. The script includes table definitions, foreign key constraints, comments, and Row Level Security (RLS) policies to ensure data integrity and proper access control for authenticated users. Also created the corresponding schema documentation in `Database Schema Designs/InventoryTracker-Audit-Schema.md`.
