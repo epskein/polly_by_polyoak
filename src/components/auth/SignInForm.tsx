@@ -2,7 +2,7 @@
 
 import type React from "react"
 import { useState, useEffect } from "react"
-import { useNavigate, useLocation } from "react-router-dom"
+import { Link, useNavigate, useLocation } from "react-router-dom"
 import { useAuth } from "../../context/AuthContext"
 import Label from "../form/Label"
 import Input from "../form/input/InputField"
@@ -91,6 +91,12 @@ export default function SignInForm() {
             >
               {loading ? "Signing in..." : "Sign In"}
             </button>
+          </div>
+
+          <div className="text-center">
+            <Link to="/auth/forgot" className="text-sm text-blue-600 hover:underline">
+              Forgot your password?
+            </Link>
           </div>
         </form>
       </div>

@@ -9,6 +9,7 @@ import { ThemeProvider } from "./context/ThemeContext.tsx"
 import { AuthProvider } from "./context/AuthContext.tsx"
 import { SidebarProvider } from "./context/SidebarContext.tsx"
 import { BrowserRouter as Router } from "react-router-dom"
+import { AuthUrlRouter } from "./components/auth/AuthUrlRouter.tsx"
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
@@ -17,6 +18,7 @@ createRoot(document.getElementById("root")!).render(
         <AuthProvider>
           <SidebarProvider>
             <AppWrapper>
+              <AuthUrlRouter />
               <App />
             </AppWrapper>
           </SidebarProvider>

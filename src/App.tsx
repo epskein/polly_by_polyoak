@@ -7,6 +7,8 @@ import { useAuthContext } from "./context/AuthContext";
 // Auth Pages
 import SignIn from "./pages/AuthPages/SignIn";
 import SignUp from "./pages/AuthPages/SignUp";
+import ResetPassword from "./pages/AuthPages/ResetPassword";
+import ForgotPassword from "./pages/AuthPages/ForgotPassword";
 
 // Dashboard
 import Home from "./pages/Dashboard/Home";
@@ -24,6 +26,7 @@ import QualityLabTracker from "./pages/QualityLabTracker/index";
 import IODTrackerPage from "./pages/IODTracker";
 import ProductInventoryManager from "./pages/InventoryTracker";
 import Users from "./pages/UserManagement/users";
+import RoleConfig from "./pages/UserManagement/roleConfig";
 import PageNotFound from "./pages/OtherPage/NotFound";
 import ProminentInventory from "./pages/ProminentInventory";
 
@@ -46,6 +49,8 @@ export default function App() {
       <Routes>
         <Route path="/auth/signin" element={<SignIn />} />
         <Route path="/auth/signup" element={<SignUp />} />
+        <Route path="/auth/forgot" element={<ForgotPassword />} />
+        <Route path="/reset-password" element={<ResetPassword />} />
         <Route
           path="/"
           element={
@@ -69,6 +74,7 @@ export default function App() {
           <Route path="prominent-inventory" element={<ProminentInventory />} />
           <Route path="iod-tracker" element={<IODTrackerPage />} />
           <Route path="users" element={<Users />} />
+          <Route path="user-roles" element={<RoleConfig />} />
         </Route>
         <Route path="*" element={<PageNotFound />} />
       </Routes>

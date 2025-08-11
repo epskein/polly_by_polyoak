@@ -41,7 +41,12 @@ function ProminentInventory() {
                 ])
                 setProducts(fetchedProducts)
                 setPallets(fetchedPallets)
-                setAuditLog(audit.logs.map(l => ({ id: l.id, user: 'system', action: JSON.stringify(l.details) || l.action_type, timestamp: l.created_at })))
+                setAuditLog(audit.logs.map(l => ({
+                    id: l.id,
+                    user: composeDisplayName(l.profile) || 'system',
+                    action: formatAuditAction(l.action_type, l.details),
+                    timestamp: l.created_at
+                })))
                 setAuditTotal(audit.total)
                 console.log(`[ProminentInventory] Loaded ${fetchedProducts.length} products, ${fetchedPallets.length} pallets and ${audit.logs.length} audit logs`)
             } catch (error) {
@@ -68,11 +73,39 @@ function ProminentInventory() {
         setAuditPage(page)
         try {
             const audit = await getAuditLogs({ limit: auditPageSize, offset: (page - 1) * auditPageSize })
-            setAuditLog(audit.logs.map(l => ({ id: l.id, user: 'system', action: JSON.stringify(l.details) || l.action_type, timestamp: l.created_at })))
+            setAuditLog(audit.logs.map(l => ({
+                id: l.id,
+                user: composeDisplayName(l.profile) || 'system',
+                action: formatAuditAction(l.action_type, l.details),
+                timestamp: l.created_at
+            })))
             setAuditTotal(audit.total)
         } catch (e) {
             console.error('[ProminentInventory] Failed to fetch audit page:', e)
         }
+    }
+
+    function formatAuditAction(actionType: string, details: any): string {
+        if (actionType === 'PALLET_MOVE' && details) {
+            const from = details.from
+            const to = details.to
+            const index = details.paletteIndex
+            const product = details.productDescription
+            return `moved (Product ${product}), Palette ${index} from ${from} to ${to}`
+        }
+        if (actionType === 'NEW_PRODUCT' && details) {
+            return `created product: ${details.name} (palettes: ${details.palettes})`
+        }
+        return actionType
+    }
+
+    function composeDisplayName(profile?: { first_name?: string | null, last_name?: string | null, email?: string | null } | null): string | undefined {
+        if (!profile) return undefined
+        const first = (profile.first_name || '').trim()
+        const last = (profile.last_name || '').trim()
+        const full = `${first} ${last}`.trim()
+        if (full) return full
+        return profile.email || undefined
     }
 
     const handleAddProduct = async (productData: Omit<Product, 'id' | 'created_at'>) => {
@@ -118,6 +151,7 @@ function ProminentInventory() {
         if (!confirmed) return
 
         try {
+            console.log('[ProminentInventory] Requesting soft-delete for product and pallets:', productId)
             await deleteProductAndPallets(productId)
             setProducts(prev => prev.filter(p => p.id !== productId))
             setPallets(prev => prev.filter(pl => pl.product_id !== productId))

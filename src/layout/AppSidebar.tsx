@@ -1,15 +1,16 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
-import { Link, useLocation } from 'react-router-dom'
+import { useCallback, useEffect, useMemo, useRef } from 'react'
+import { Link } from 'react-router-dom'
 import { useSidebar } from '../context/SidebarContext'
 import { Logo } from '../components/common/Logo'
 import SidebarLink from './SidebarLink'
+import { useAuthContext } from '../context/AuthContext'
 
 import {
   BoxCubeIcon,
   CalenderIcon,
   ChevronDownIcon,
   GridIcon,
-  HorizontaLDots,
+  
   ListIcon,
   PageIcon,
   PieChartIcon,
@@ -38,7 +39,7 @@ const navItems: NavItem[] = [
     icon: <UserIcon />,
     subItems: [
       { name: 'All Users', path: '/users' },
-      { name: 'User Role Config', path: '/error-404', pro: false },
+      { name: 'User Role Config', path: '/user-roles', pro: false },
     ],
   },
 
@@ -130,8 +131,48 @@ const othersItems: NavItem[] = [
 ]
 
 function AppSidebar() {
-  const location = useLocation()
-  const { pathname } = location
+  // Access current authenticated user's profile to determine role-based visibility
+  const { user, profile } = useAuthContext()
+  // Derive role from multiple possible sources to handle legacy and FK migrations
+  const derivedRoleName = (
+    (profile as any)?.roles?.name ||
+    (profile as any)?.role_ref?.name ||
+    (profile as any)?.role ||
+    (user as any)?.user_metadata?.role ||
+    ''
+  ) as string
+  const normalizedRole = String(derivedRoleName || '').trim().toLowerCase()
+
+  // Debug aid: log current role resolution once per render
+  if (typeof window !== 'undefined') {
+    // eslint-disable-next-line no-console
+    console.debug('Sidebar role debug', { userId: user?.id, profile, derivedRoleName, normalizedRole })
+  }
+
+  // Compute allowed main menu items based on role. Admins see everything; specific
+  // roles see only explicitly allowed items; unknown/no role sees nothing by default.
+  const filteredNavItems = useMemo(() => {
+    if (!normalizedRole) return []
+
+    if (normalizedRole === 'admin') return navItems
+
+    const isInventoryKanbanUser =
+      normalizedRole === 'inventory_kanban_polyoak_user' ||
+      normalizedRole === 'inventory_kanban_prominent_user'
+
+    if (isInventoryKanbanUser)
+      return navItems.filter(item => item.name === 'Prominent Inventory Tracker')
+
+    if (normalizedRole === 'polyoak_quality_lab_user')
+      return navItems.filter(item =>
+        item.name === 'Quality Lab Job Tracker' || item.name === 'IOD Incident Tracker'
+      )
+
+    return []
+  }, [normalizedRole])
+
+  // Only admins should see the OTHERS section
+  const showOthers = normalizedRole === 'admin'
 
   const {
     isExpanded,
@@ -220,25 +261,27 @@ function AppSidebar() {
               MENU
             </h3>
             <ul className="mb-6 flex flex-col gap-1.5">
-              {navItems.map((item, index) => (
+              {filteredNavItems.map((item, index) => (
                 <SidebarLink item={item} key={index} />
               ))}
             </ul>
           </div>
-          <div>
-            <h3
-              className={`mb-4 ml-4 text-sm font-semibold text-gray-500 dark:text-gray-400 ${
-                !isExpanded && 'hidden'
-              }`}
-            >
-              OTHERS
-            </h3>
-            <ul className="mb-6 flex flex-col gap-1.5">
-              {othersItems.map((item, index) => (
-                <SidebarLink item={item} key={index} />
-              ))}
-            </ul>
-          </div>
+          {showOthers && (
+            <div>
+              <h3
+                className={`mb-4 ml-4 text-sm font-semibold text-gray-500 dark:text-gray-400 ${
+                  !isExpanded && 'hidden'
+                }`}
+              >
+                OTHERS
+              </h3>
+              <ul className="mb-6 flex flex-col gap-1.5">
+                {othersItems.map((item, index) => (
+                  <SidebarLink item={item} key={index} />
+                ))}
+              </ul>
+            </div>
+          )}
         </nav>
       </div>
     </aside>

@@ -3,12 +3,23 @@
 import { useState, useEffect, useCallback } from "react"
 import { supabase } from "../lib/supabase"
 import type { User, Session } from "@supabase/supabase-js"
-import type { Profile } from "../types/database.types"
+
+interface UserProfile {
+  id: string
+  email: string | null
+  first_name: string | null
+  last_name: string | null
+  phone: string | null
+  role: string | null
+  role_id: string | null
+  role_ref?: { name: string }
+  roles?: { name: string }
+}
 
 export function useAuthImplementation() {
   const [user, setUser] = useState<User | null>(null)
   const [session, setSession] = useState<Session | null>(null)
-  const [profile, setProfile] = useState<Profile | null>(null)
+  const [profile, setProfile] = useState<UserProfile | null>(null)
   const [loading, setLoading] = useState<boolean>(true)
 
   const fetchProfile = useCallback(async (userToFetch: User | null) => {
@@ -17,13 +28,35 @@ export function useAuthImplementation() {
       return
     }
     try {
-      const { data, error } = await supabase
+      // Fetch profile and include the joined role name via FK (profiles.role_id -> roles.id)
+      // We alias the joined object to role_ref to avoid clashing with any existing text column 'role'
+      let { data, error } = await supabase
         .from("profiles")
-        .select("*")
+        .select("id, email, first_name, last_name, phone, role, role_id, roles:roles!profiles_role_id_fkey(name)")
         .eq("id", userToFetch.id)
         .single()
+      if (error) {
+        // Fallback: try without explicit FK name
+        const fallback = await supabase
+          .from("profiles")
+          .select("id, email, first_name, last_name, phone, role, role_id, roles(name)")
+          .eq("id", userToFetch.id)
+          .single()
+        data = fallback.data as any
+        error = fallback.error as any
+      }
       if (error) throw error
-      setProfile(data)
+      // If join did not resolve role name but we have role_id, fetch role name explicitly
+      let profileData = data as unknown as UserProfile
+      if (!profileData?.roles?.name && profileData?.role_id) {
+        const { data: roleRow } = await supabase
+          .from("roles")
+          .select("name")
+          .eq("id", profileData.role_id)
+          .single()
+        if (roleRow?.name) profileData = { ...profileData, roles: { name: roleRow.name } }
+      }
+      setProfile(profileData)
     } catch (err) {
       console.error("Failed to fetch profile", err)
       setProfile(null)

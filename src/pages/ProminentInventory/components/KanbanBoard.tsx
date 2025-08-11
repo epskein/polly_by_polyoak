@@ -168,7 +168,8 @@ const KanbanBoard: React.FC<KanbanBoardProps> = ({ products, pallets, setPallets
       
       const timestamp = new Date().toLocaleTimeString();
       const user = 'admin@polly.com';
-      const logMessage = `[${timestamp}] ${user} reordered Palette ${currentState[activeContainer][activeIndex].paletteIndex} in ${activeContainer}`;
+      const reorderedItem = currentState[activeContainer][activeIndex]
+      const logMessage = `[${timestamp}] ${user} reordered (Product ${reorderedItem.description}), Palette ${reorderedItem.paletteIndex} in ${activeContainer}`;
       addAuditLog(logMessage);
 
       const restore = () => setColumns(currentState);
@@ -205,7 +206,7 @@ const KanbanBoard: React.FC<KanbanBoardProps> = ({ products, pallets, setPallets
       
       const timestamp = new Date().toLocaleTimeString();
       const user = 'admin@polly.com';
-      const logMessage = `[${timestamp}] ${user} moved Palette ${movedItem.paletteIndex} from ${activeContainer} to ${overContainer}`;
+      const logMessage = `[${timestamp}] ${user} moved (Product ${movedItem.description}), Palette ${movedItem.paletteIndex} from ${activeContainer} to ${overContainer}`;
       addAuditLog(logMessage);
 
       const previousStatus = activeContainer

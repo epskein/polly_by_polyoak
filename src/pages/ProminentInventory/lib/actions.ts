@@ -2,7 +2,24 @@
 import { supabase } from "../../../lib/supabase";
 import { Product } from "../types";
 import type { Pallet } from "../../../types/inventory";
-import type { AuditLog as DbAuditLog } from "../../../types/inventory";
+// Minimal shapes for fetching audit logs and attaching profile info
+interface ProfileRef {
+  id: string
+  first_name?: string | null
+  last_name?: string | null
+  email?: string | null
+}
+
+export interface AuditLogWithProfile {
+  id: string
+  user_id: string
+  action_type: 'PALLET_MOVE' | 'NEW_PRODUCT' | 'EDIT_PRODUCT' | 'DELETE_PRODUCT'
+  product_id?: string | null
+  pallet_id?: string | null
+  details?: Record<string, any> | null
+  created_at: string
+  profile?: ProfileRef | null
+}
 
 export async function getProducts(): Promise<Product[]> {
   const { data, error } = await supabase
@@ -54,15 +71,18 @@ export async function updateProduct(product: Product): Promise<Product | null> {
 
 export async function deleteProduct(productId: string): Promise<void> {
   // Soft delete: set deleted = true
-  const { error } = await supabase
+  const { data, error } = await supabase
     .from('products')
     .update({ deleted: true })
-    .eq('id', productId);
+    .eq('id', productId)
+    .select('id, deleted')
+    .single();
 
   if (error) {
     console.error("Error soft-deleting product:", error);
     throw new Error(error.message);
   }
+  console.log('[ProminentInventory/actions] Product soft-deleted row:', data)
 }
 
 /**
@@ -72,28 +92,31 @@ export async function deleteProduct(productId: string): Promise<void> {
  */
 export async function deleteProductAndPallets(productId: string): Promise<void> {
   console.log(`[ProminentInventory/actions] Soft-deleting pallets for product ${productId}...`)
-  const { error: palletsError } = await supabase
+  const { data: palletsData, error: palletsError } = await supabase
     .from('pallets')
     .update({ deleted: true })
     .eq('product_id', productId)
+    .select('id, deleted')
 
   if (palletsError) {
     console.error('[ProminentInventory/actions] Error soft-deleting pallets:', palletsError)
     throw new Error(palletsError.message)
   }
-  console.log('[ProminentInventory/actions] Pallets soft-deleted successfully')
+  console.log('[ProminentInventory/actions] Pallets soft-deleted successfully. Rows:', palletsData?.length || 0)
 
   console.log(`[ProminentInventory/actions] Soft-deleting product ${productId}...`)
-  const { error: productError } = await supabase
+  const { data: productData, error: productError } = await supabase
     .from('products')
     .update({ deleted: true })
     .eq('id', productId)
+    .select('id, deleted')
+    .single()
 
   if (productError) {
     console.error('[ProminentInventory/actions] Error soft-deleting product:', productError)
     throw new Error(productError.message)
   }
-  console.log('[ProminentInventory/actions] Product soft-deleted successfully')
+  console.log('[ProminentInventory/actions] Product soft-deleted successfully. Row:', productData)
 }
 
 /**
@@ -220,13 +243,13 @@ export async function createAuditLog(logEntry: {
  */
 export async function getAuditLogs(
   params: { limit: number; offset: number }
-): Promise<{ logs: DbAuditLog[]; total: number }> {
+): Promise<{ logs: AuditLogWithProfile[]; total: number }> {
   const { limit, offset } = params
   console.log(`[ProminentInventory/actions] Fetching audit logs limit=${limit} offset=${offset}`)
 
   const { data, error, count } = await supabase
     .from('audit_log')
-    .select('*', { count: 'exact' })
+    .select('id, user_id, action_type, product_id, pallet_id, details, created_at', { count: 'exact' })
     .order('created_at', { ascending: false })
     .range(offset, Math.max(offset, offset + limit - 1))
 
@@ -235,6 +258,27 @@ export async function getAuditLogs(
     throw new Error(error.message)
   }
 
-  console.log(`[ProminentInventory/actions] Loaded ${data?.length || 0} audit logs of total ${count ?? 0}`)
-  return { logs: data || [], total: count ?? 0 }
+  const logs = data || []
+  const userIds = Array.from(new Set(logs.map(l => l.user_id).filter(Boolean))) as string[]
+  let profilesById = new Map<string, ProfileRef>()
+  if (userIds.length > 0) {
+    const { data: profiles, error: profErr } = await supabase
+      .from('profiles')
+      .select('id, first_name, last_name, email')
+      .in('id', userIds)
+
+    if (profErr) {
+      console.warn('[ProminentInventory/actions] Failed to fetch profiles for audit logs:', profErr)
+    } else {
+      profilesById = new Map((profiles || []).map((p: ProfileRef) => [p.id, p]))
+    }
+  }
+
+  const logsWithProfiles: AuditLogWithProfile[] = logs.map(l => ({
+    ...l,
+    profile: profilesById.get(l.user_id) || null,
+  }))
+
+  console.log(`[ProminentInventory/actions] Loaded ${logsWithProfiles.length} audit logs of total ${count ?? 0}`)
+  return { logs: logsWithProfiles, total: count ?? 0 }
 }
