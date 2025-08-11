@@ -4,9 +4,14 @@ import { AuditLog } from '../types';
 
 interface AuditTrailProps {
   auditLog: AuditLog[];
+  page?: number;
+  pageSize?: number;
+  total?: number;
+  onPageChange?: (page: number) => void;
 }
 
-const AuditTrail: React.FC<AuditTrailProps> = ({ auditLog }) => {
+const AuditTrail: React.FC<AuditTrailProps> = ({ auditLog, page = 1, pageSize = 20, total = 0, onPageChange }) => {
+  const totalPages = Math.max(1, Math.ceil(total / pageSize))
   return (
     <div className="bg-gray-100 dark:bg-gray-800 p-4 rounded-lg">
       <h2 className="font-semibold text-lg mb-4 text-gray-800 dark:text-gray-200">Audit Trail</h2>
@@ -19,6 +24,29 @@ const AuditTrail: React.FC<AuditTrailProps> = ({ auditLog }) => {
           </div>
         ))}
       </div>
+      {onPageChange && (
+        <div className="flex items-center justify-between mt-4 text-sm text-gray-700 dark:text-gray-300">
+          <span>
+            Page {page} of {totalPages}
+          </span>
+          <div className="space-x-2">
+            <button
+              className="px-3 py-1 rounded border border-gray-300 dark:border-gray-600 disabled:opacity-50"
+              onClick={() => onPageChange(Math.max(1, page - 1))}
+              disabled={page <= 1}
+            >
+              Previous
+            </button>
+            <button
+              className="px-3 py-1 rounded border border-gray-300 dark:border-gray-600 disabled:opacity-50"
+              onClick={() => onPageChange(Math.min(totalPages, page + 1))}
+              disabled={page >= totalPages}
+            >
+              Next
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

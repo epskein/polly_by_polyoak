@@ -47,6 +47,12 @@ const ProductList: React.FC<ProductListProps> = ({ onAddProduct, onUpdateProduct
         />
       )}
       <div className="mt-4 space-y-2">
+        {/* Empty state message when no products are available */}
+        {products.length === 0 && (
+          <div className="w-full rounded-md border border-dashed border-gray-300 dark:border-gray-700 p-6 text-center text-gray-600 dark:text-gray-300 bg-white dark:bg-gray-800">
+            There are currently no Products, create one using the Add Product Button.
+          </div>
+        )}
         {products.map((product) => (
           <div
             key={product.id}

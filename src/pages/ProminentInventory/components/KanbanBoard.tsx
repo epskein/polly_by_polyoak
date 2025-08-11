@@ -13,23 +13,33 @@ import {
 import { arrayMove } from '@dnd-kit/sortable';
 import KanbanColumn from './KanbanColumn';
 import { Product } from '../types';
+import type { Pallet } from '../../../types/inventory';
+import { updatePalletStatus, createAuditLog } from '../lib/actions';
+import { supabase } from '../../../lib/supabase';
 
 interface KanbanBoardProps {
-  products: Product[];
-  setProducts: React.Dispatch<React.SetStateAction<Product[]>>;
-  addAuditLog: (action: string) => void;
+  products: Product[]
+  pallets: Pallet[]
+  setPallets: React.Dispatch<React.SetStateAction<Pallet[]>>
+  setProducts: React.Dispatch<React.SetStateAction<Product[]>>
+  addAuditLog: (action: string) => void
   onMovement: (movement: {
-    item: KanbanProduct;
-    fromColumn: string;
-    toColumn: string;
-    timestamp: string;
-    columns: { [key: string]: KanbanProduct[] };
-    restore: () => void;
-  }) => void;
+    item: KanbanProduct
+    fromColumn: string
+    toColumn: string
+    timestamp: string
+    columns: { [key: string]: KanbanProduct[] }
+    restore: () => void
+  }) => void
 }
 
 interface KanbanProduct extends Product {
-  paletteIndex: number;
+  // Index of this pallet among all pallets of the same product (1-based)
+  paletteIndex: number
+  // The persisted pallet id
+  id: string
+  // The originating product id
+  productId: string
 }
 
 const ALLOWED_MOVEMENTS = {
@@ -38,7 +48,7 @@ const ALLOWED_MOVEMENTS = {
   'IN TRANSIT TO PROMINENT': ['SOH PROMINENT'],
 };
 
-const KanbanBoard: React.FC<KanbanBoardProps> = ({ products, setProducts, addAuditLog, onMovement }) => {
+const KanbanBoard: React.FC<KanbanBoardProps> = ({ products, pallets, setPallets: _setPallets, setProducts: _setProducts, addAuditLog, onMovement }) => {
   const [columns, setColumns] = useState<{ [key: string]: KanbanProduct[] }>({
     'SOH PROMINENT': [],
     'TO REPLENISH': [],
@@ -54,32 +64,48 @@ const KanbanBoard: React.FC<KanbanBoardProps> = ({ products, setProducts, addAud
   );
 
   useEffect(() => {
-    // Create multiple cards for each product based on the number of palettes
-    const expandedProducts = products.flatMap(product => 
-      Array.from({ length: product.palettes }, (_, index) => ({
-        ...product,
-        paletteIndex: index + 1,
-        id: `${product.id}-${index + 1}` // Create unique IDs for each palette
-      }))
-    );
+    // Build a map of productId -> product for quick lookup
+    const productById = new Map(products.map(p => [p.id, p]))
 
-    // Only update SOH PROMINENT if it's empty or if products have changed
-    setColumns(prev => {
-      // If there are items in other columns, preserve them
-      if (prev['TO REPLENISH'].length > 0 || prev['IN TRANSIT TO PROMINENT'].length > 0) {
-        return {
-          ...prev,
-          'SOH PROMINENT': expandedProducts.filter(newProduct => 
-            !Object.values(prev).flat().some(existingProduct => 
-              existingProduct.id === newProduct.id
-            )
-          )
-        };
+    // For paletteIndex, group pallets by product and sort by created_at
+    const palletsByProduct = new Map<string, Pallet[]>()
+    pallets.forEach(p => {
+      const arr = palletsByProduct.get(p.product_id) || []
+      arr.push(p)
+      palletsByProduct.set(p.product_id, arr)
+    })
+    palletsByProduct.forEach(arr => arr.sort((a, b) => a.created_at.localeCompare(b.created_at)))
+
+    // Helper to compute index within product group
+    const computeIndex = (pallet: Pallet): number => {
+      const arr = palletsByProduct.get(pallet.product_id) || []
+      const idx = arr.findIndex(x => x.id === pallet.id)
+      return idx >= 0 ? idx + 1 : 1
+    }
+
+    // Build columns from pallet statuses
+    const nextColumns: { [key: string]: KanbanProduct[] } = {
+      'SOH PROMINENT': [],
+      'TO REPLENISH': [],
+      'IN TRANSIT TO PROMINENT': [],
+    }
+
+    pallets.forEach((pallet: Pallet) => {
+      const product = productById.get(pallet.product_id)
+      if (!product) return
+      const item: KanbanProduct = {
+        ...product,
+        id: pallet.id,
+        paletteIndex: computeIndex(pallet),
+        productId: product.id,
       }
-      // Otherwise, just set SOH PROMINENT
-      return { ...prev, 'SOH PROMINENT': expandedProducts };
-    });
-  }, [products]);
+      const col = pallet.status as keyof typeof nextColumns
+      if (!nextColumns[col]) nextColumns['SOH PROMINENT'].push(item)
+      else nextColumns[col].push(item)
+    })
+
+    setColumns(nextColumns)
+  }, [products, pallets])
 
   const isMovementAllowed = (from: string, to: string): boolean => {
     const allowedDestinations = ALLOWED_MOVEMENTS[from as keyof typeof ALLOWED_MOVEMENTS];
@@ -92,7 +118,7 @@ const KanbanBoard: React.FC<KanbanBoardProps> = ({ products, setProducts, addAud
     if (!activeContainer) return;
   };
 
-  const handleDragOver = (event: DragOverEvent) => {
+  const handleDragOver = (_event: DragOverEvent) => {
     // This function is intentionally left empty. 
     // All state updates are handled in `onDragEnd` to ensure consistency and prevent race conditions.
     // Visual feedback during the drag is managed by the dnd-kit's default SortableContext behavior.
@@ -182,7 +208,49 @@ const KanbanBoard: React.FC<KanbanBoardProps> = ({ products, setProducts, addAud
       const logMessage = `[${timestamp}] ${user} moved Palette ${movedItem.paletteIndex} from ${activeContainer} to ${overContainer}`;
       addAuditLog(logMessage);
 
-      const restore = () => setColumns(currentState);
+      const previousStatus = activeContainer
+      const nextStatus = overContainer
+
+      // Persist status change in backend; revert on failure
+      const persist = async () => {
+        try {
+          await updatePalletStatus(movedItem.id, nextStatus)
+          // Persist audit entry
+          const { data: { session } } = await supabase.auth.getSession()
+          const userId = session?.user?.id
+          if (!userId) console.warn('[ProminentInventory] No authenticated user; audit log insert may be blocked by RLS')
+
+          const logPayload = {
+            action_type: 'PALLET_MOVE',
+            product_id: movedItem.productId,
+            pallet_id: movedItem.id,
+            details: {
+              from: previousStatus,
+              to: nextStatus,
+              paletteIndex: movedItem.paletteIndex,
+              productDescription: movedItem.description,
+            },
+            user_id: userId,
+          } as const
+
+          console.log('[ProminentInventory] Creating audit log:', logPayload)
+          await createAuditLog(logPayload as any)
+          console.log('[ProminentInventory] Audit log created successfully')
+          // Reflect in parent pallets state for consistency
+          // We do not reorder on backend; only status changes are persisted
+        } catch (e) {
+          console.error('Failed to persist pallet move. Reverting UI...', e)
+          setColumns(currentState)
+        }
+      }
+      void persist()
+
+      const restore = () => {
+        setColumns(currentState)
+        // Best-effort backend rollback
+        void updatePalletStatus(movedItem.id, previousStatus)
+      }
+
       onMovement({
         item: movedItem,
         fromColumn: activeContainer,

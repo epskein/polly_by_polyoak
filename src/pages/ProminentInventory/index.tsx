@@ -1,5 +1,5 @@
 // src/pages/ProminentInventory/index.tsx
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import PageBreadcrumb from '../../components/common/PageBreadCrumb';
 import PageMeta from '../../components/common/PageMeta';
 import AuditTrail from './components/AuditTrail';
@@ -7,7 +7,8 @@ import KanbanBoard from './components/KanbanBoard';
 import ProductList from './components/ProductList';
 import UndoButton from './components/UndoButton';
 import { Product, AuditLog, KanbanProduct } from './types';
-import { getProducts, addProduct, updateProduct, deleteProduct } from './lib/actions';
+import { getProducts, addProduct, updateProduct, deleteProductAndPallets, createPalletsForProduct, getPallets, getAuditLogs } from './lib/actions';
+import type { Pallet } from '../../types/inventory';
 
 interface Movement {
   item: KanbanProduct;
@@ -22,23 +23,35 @@ function ProminentInventory() {
     const [products, setProducts] = useState<Product[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [auditLog, setAuditLog] = useState<AuditLog[]>([]);
+    const [auditTotal, setAuditTotal] = useState(0)
+    const [auditPage, setAuditPage] = useState(1)
+    const auditPageSize = 10
+    const [pallets, setPallets] = useState<Pallet[]>([]);
     const [lastMovement, setLastMovement] = useState<Movement | null>(null);
     const [showUndo, setShowUndo] = useState(false);
 
     useEffect(() => {
-        const fetchProducts = async () => {
+        const fetchAll = async () => {
+            console.log('[ProminentInventory] Loading products and pallets...')
             try {
-                const fetchedProducts = await getProducts();
-                setProducts(fetchedProducts);
+                const [fetchedProducts, fetchedPallets, audit] = await Promise.all([
+                    getProducts(),
+                    getPallets(),
+                    getAuditLogs({ limit: auditPageSize, offset: (auditPage - 1) * auditPageSize })
+                ])
+                setProducts(fetchedProducts)
+                setPallets(fetchedPallets)
+                setAuditLog(audit.logs.map(l => ({ id: l.id, user: 'system', action: JSON.stringify(l.details) || l.action_type, timestamp: l.created_at })))
+                setAuditTotal(audit.total)
+                console.log(`[ProminentInventory] Loaded ${fetchedProducts.length} products, ${fetchedPallets.length} pallets and ${audit.logs.length} audit logs`)
             } catch (error) {
-                console.error("Failed to fetch products:", error);
-                // Here you could set an error state and display a message to the user
+                console.error('[ProminentInventory] Failed to fetch initial data:', error)
             } finally {
-                setIsLoading(false);
+                setIsLoading(false)
             }
-        };
+        }
 
-        fetchProducts();
+        fetchAll();
     }, []);
 
     const addAuditLog = (action: string) => {
@@ -51,12 +64,32 @@ function ProminentInventory() {
         setAuditLog((prev) => [newLog, ...prev]);
     };
 
+    const handleAuditPageChange = async (page: number) => {
+        setAuditPage(page)
+        try {
+            const audit = await getAuditLogs({ limit: auditPageSize, offset: (page - 1) * auditPageSize })
+            setAuditLog(audit.logs.map(l => ({ id: l.id, user: 'system', action: JSON.stringify(l.details) || l.action_type, timestamp: l.created_at })))
+            setAuditTotal(audit.total)
+        } catch (e) {
+            console.error('[ProminentInventory] Failed to fetch audit page:', e)
+        }
+    }
+
     const handleAddProduct = async (productData: Omit<Product, 'id' | 'created_at'>) => {
+        console.log('[ProminentInventory] handleAddProduct called with:', productData)
         try {
             const newProduct = await addProduct(productData);
             if (newProduct) {
                 setProducts((prev) => [newProduct, ...prev]);
                 addAuditLog(`Created product: ${newProduct.description}`);
+
+                // Create pallets in backend for this product
+                const count = Number(newProduct.palettes) || 0
+                console.log(`[ProminentInventory] Creating ${count} pallets for new product ${newProduct.id}`)
+                const created = await createPalletsForProduct(newProduct.id, count, 'SOH PROMINENT')
+                console.log(`[ProminentInventory] Pallet creation complete. Created: ${created}`)
+                const refreshedPallets = await getPallets()
+                setPallets(refreshedPallets)
             }
         } catch (error) {
             console.error("Failed to add product:", error);
@@ -78,15 +111,20 @@ function ProminentInventory() {
     };
 
     const handleDeleteProduct = async (productId: string) => {
-        const productToDelete = products.find(p => p.id === productId);
-        if (!productToDelete) return;
+        const productToDelete = products.find(p => p.id === productId)
+        if (!productToDelete) return
+
+        const confirmed = window.confirm(`Delete product "${productToDelete.description}" and all associated pallets? This action cannot be undone.`)
+        if (!confirmed) return
 
         try {
-            await deleteProduct(productId);
-            setProducts((prev) => prev.filter((p) => p.id !== productId));
-            addAuditLog(`Deleted product: ${productToDelete.description}`);
+            await deleteProductAndPallets(productId)
+            setProducts(prev => prev.filter(p => p.id !== productId))
+            setPallets(prev => prev.filter(pl => pl.product_id !== productId))
+            addAuditLog(`Deleted product: ${productToDelete.description}`)
         } catch (error) {
-            console.error("Failed to delete product:", error);
+            console.error('Failed to delete product:', error)
+            alert(`Failed to delete product: ${(error as Error).message}`)
         }
     };
 
@@ -100,9 +138,7 @@ function ProminentInventory() {
         lastMovement.restore();
         const timestamp = new Date().toLocaleTimeString();
         const user = 'admin@polly.com';
-        addAuditLog(
-            `[${timestamp}] ${user} undid movement of Palette ${lastMovement.item.paletteIndex} of ${lastMovement.item.description}`
-        );
+        addAuditLog(`[${timestamp}] ${user} undid movement of Palette ${lastMovement.item.paletteIndex} of ${lastMovement.item.description}`);
         setShowUndo(false);
         setLastMovement(null);
     };
@@ -123,7 +159,7 @@ function ProminentInventory() {
                 description="Prominent Inventory Kanban board for tracking stock."
             />
             <div className="px-4 md:px-6 2xl:px-10">
-                <PageBreadcrumb pageTitle="Prominent Inventory" />
+                <PageBreadcrumb pageTitle="Prominent Inventory" titleClassName="text-3xl md:text-4xl" />
                 <div className="mt-6">
                     <ProductList
                         onAddProduct={handleAddProduct}
@@ -144,13 +180,15 @@ function ProminentInventory() {
                         <div className="lg:col-span-2">
                             <KanbanBoard
                                 products={products}
+                                pallets={pallets}
+                                setPallets={setPallets}
                                 setProducts={setProducts}
                                 addAuditLog={addAuditLog}
                                 onMovement={handleMovement}
                             />
                         </div>
                         <div>
-                            <AuditTrail auditLog={auditLog} />
+                            <AuditTrail auditLog={auditLog} page={auditPage} pageSize={auditPageSize} total={auditTotal} onPageChange={handleAuditPageChange} />
                         </div>
                     </div>
                 </div>

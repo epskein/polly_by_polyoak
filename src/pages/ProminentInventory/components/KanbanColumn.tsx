@@ -7,6 +7,7 @@ import KanbanCard from './KanbanCard';
 
 interface KanbanProduct extends Product {
   paletteIndex: number;
+  id: string;
 }
 
 interface KanbanColumnProps {

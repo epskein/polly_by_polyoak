@@ -1,6 +1,14 @@
-import { Database } from "../../types/database.types";
-
-export type Product = Database['public']['Tables']['products']['Row'];
+export interface Product {
+  id: string
+  description: string
+  supplier_code?: string | null
+  stock_code?: string | null
+  items_per_palette: number
+  palettes: number
+  color: string
+  created_at?: string
+  deleted?: boolean
+}
 
 export interface AuditLog {
   id: string;

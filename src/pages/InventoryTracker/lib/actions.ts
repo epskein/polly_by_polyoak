@@ -5,16 +5,18 @@ import type { Pallet, AuditLog, Product } from "../../../types/inventory";
 // ============== Product Functions ==============
 
 export async function getProducts(): Promise<Product[]> {
+  console.log("Attempting to fetch products...");
   const { data, error } = await supabase
     .from('products')
     .select('*')
     .order('created_at', { ascending: false });
 
   if (error) {
-    console.error("Error fetching products:", error);
+    console.error("DATABASE ERROR: Error fetching products:", error);
     throw new Error(error.message);
   }
-
+  
+  console.log(`SUCCESS: Fetched ${data?.length || 0} products.`);
   return data || [];
 }
 
@@ -25,16 +27,18 @@ export async function getProducts(): Promise<Product[]> {
  * @returns {Promise<Pallet[]>} A list of all pallets.
  */
 export async function getPallets(): Promise<Pallet[]> {
+    console.log("Attempting to fetch pallets...");
     const { data, error } = await supabase
         .from('pallets')
         .select('*')
         .order('created_at', { ascending: false });
 
     if (error) {
-        console.error("Error fetching pallets:", error);
+        console.error("DATABASE ERROR: Error fetching pallets:", error);
         throw new Error(error.message);
     }
 
+    console.log(`SUCCESS: Fetched ${data?.length || 0} pallets.`);
     return data || [];
 }
 
@@ -45,6 +49,7 @@ export async function getPallets(): Promise<Pallet[]> {
  * @returns {Promise<Pallet | null>} The newly created pallet.
  */
 export async function addPallet(productId: string, status: string): Promise<Pallet | null> {
+  console.log(`Attempting to add pallet for product ID: ${productId} with status: ${status}`);
   const { data, error } = await supabase
     .from('pallets')
     .insert([{ product_id: productId, status }])
@@ -52,10 +57,11 @@ export async function addPallet(productId: string, status: string): Promise<Pall
     .single();
 
   if (error) {
-    console.error("Error adding pallet:", error);
+    console.error("DATABASE ERROR: Error adding pallet:", error);
     throw new Error(error.message);
   }
 
+  console.log("SUCCESS: Pallet added successfully:", data);
   return data;
 }
 
@@ -64,15 +70,17 @@ export async function addPallet(productId: string, status: string): Promise<Pall
  * @param {string} palletId - The ID of the pallet to delete.
  */
 export async function deletePallet(palletId: string): Promise<void> {
+  console.log(`Attempting to delete pallet with ID: ${palletId}`);
   const { error } = await supabase
     .from('pallets')
     .delete()
     .eq('id', palletId);
 
   if (error) {
-    console.error("Error deleting pallet:", error);
+    console.error(`DATABASE ERROR: Error deleting pallet ${palletId}:`, error);
     throw new Error(error.message);
   }
+  console.log(`SUCCESS: Pallet ${palletId} deleted successfully.`);
 }
 
 /**
@@ -82,6 +90,7 @@ export async function deletePallet(palletId: string): Promise<void> {
  * @returns {Promise<Pallet | null>} The updated pallet.
  */
 export async function updatePalletStatus(palletId: string, newStatus: string): Promise<Pallet | null> {
+    console.log(`Attempting to update pallet ID: ${palletId} to status: ${newStatus}`);
     const { data, error } = await supabase
         .from('pallets')
         .update({ status: newStatus })
@@ -90,10 +99,11 @@ export async function updatePalletStatus(palletId: string, newStatus: string): P
         .single();
 
     if (error) {
-        console.error("Error updating pallet status:", error);
+        console.error(`DATABASE ERROR: Error updating pallet ${palletId} status:`, error);
         throw new Error(error.message);
     }
 
+    console.log(`SUCCESS: Pallet ${palletId} status updated successfully:`, data);
     return data;
 }
 

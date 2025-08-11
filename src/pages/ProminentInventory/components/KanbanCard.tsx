@@ -44,10 +44,10 @@ const KanbanCard: React.FC<KanbanCardProps> = ({ product }) => {
       className="p-4 mb-4 rounded-lg shadow-md cursor-grab active:cursor-grabbing hover:shadow-lg transition-shadow"
     >
       <p className="font-semibold text-white">{product.description}</p>
-      <p className="text-sm text-gray-200">Supplier: {product.supplierCode}</p>
-      <p className="text-sm text-gray-200">Stock: {product.stockCode}</p>
+      <p className="text-sm text-gray-200">Supplier: {product.supplier_code}</p>
+      <p className="text-sm text-gray-200">Stock: {product.stock_code}</p>
       <p className="text-sm text-gray-200">Palette: {product.paletteIndex} of {product.palettes}</p>
-      <p className="text-sm text-gray-200">Items: {product.itemsPerPalette}</p>
+      <p className="text-sm text-gray-200">Items: {product.items_per_palette}</p>
     </div>
   );
 };
