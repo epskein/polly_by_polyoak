@@ -35,6 +35,7 @@ export default function AllUsersTable() {
   // State for table data
   const [profiles, setProfiles] = useState<ProfileRecord[]>([])
   const [roles, setRoles] = useState<RoleRecord[]>([])
+  const [isAdmin, setIsAdmin] = useState<boolean>(false)
 
   // State for modal visibility and form
   const [isDialogOpen, setIsDialogOpen] = useState<boolean>(false)
@@ -45,7 +46,7 @@ export default function AllUsersTable() {
 
   // Load profiles and roles on mount
   useEffect(() => {
-    void Promise.all([loadProfiles(), loadRoles()])
+    void Promise.all([loadProfiles(), loadRoles(), loadCurrentUserRole()])
   }, [])
 
   // Fetch profiles from backend
@@ -71,6 +72,27 @@ export default function AllUsersTable() {
       return
     }
     setRoles((data || []) as RoleRecord[])
+  }
+
+  // Determine if the current user is an admin
+  async function loadCurrentUserRole() {
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) {
+      setIsAdmin(false)
+      return
+    }
+    const { data, error } = await supabase
+      .from("profiles")
+      .select("id, role_id, roles(name)")
+      .eq("id", user.id)
+      .single()
+    if (error) {
+      console.warn("Failed to fetch current user role:", error)
+      setIsAdmin(false)
+      return
+    }
+    const roleName = (data as any)?.roles?.name as string | undefined
+    setIsAdmin(roleName?.toLowerCase() === "admin")
   }
 
   // Open dialog for creating a new user
@@ -114,27 +136,47 @@ export default function AllUsersTable() {
 
     setFormError("")
 
-    // Update existing profile (does not change auth)
+    // Update existing profile, including email (admin-only)
     if (isEditMode && editingProfile) {
-      const { error: updateError } = await supabase
-        .from("profiles")
-        .update({
-          first_name: formState.firstName || null,
-          last_name: formState.lastName || null,
-          phone: formState.phone && formState.phone.trim() ? formState.phone.trim() : null,
-          role_id: formState.roleId,
-          // Email update is omitted in edit flow to avoid auth conflicts
-        })
-        .eq("id", editingProfile.id)
+      try {
+        // Admin-only: update all fields in one RPC
+        if (!isAdmin) {
+          setFormError("Only admins can update user details")
+          return
+        }
 
-      if (updateError) {
-        setFormError(updateError.message || "Failed to update user")
+        const { error: updateErr } = await supabase.rpc('admin_update_user_profile', {
+          p_user_id: editingProfile.id,
+          p_email: formState.email.trim() || null,
+          p_first_name: formState.firstName || null,
+          p_last_name: formState.lastName || null,
+          p_phone: formState.phone && formState.phone.trim() ? formState.phone.trim() : null,
+          p_role_id: formState.roleId || null,
+        })
+
+        if (updateErr) {
+          // fallback to strict variant if needed
+          const { error: strictErr } = await supabase.rpc('admin_update_user_profile_strict', {
+            p_user_id: editingProfile.id,
+            p_email: formState.email.trim() || null,
+            p_first_name: formState.firstName || null,
+            p_last_name: formState.lastName || null,
+            p_phone: formState.phone && formState.phone.trim() ? formState.phone.trim() : null,
+            p_role_id: formState.roleId || null,
+          })
+          if (strictErr) {
+            setFormError(strictErr.message || updateErr.message || "Failed to update user")
+            return
+          }
+        }
+
+        await loadProfiles()
+        setIsDialogOpen(false)
+        return
+      } catch (e: any) {
+        setFormError(e?.message || "Failed to update user")
         return
       }
-
-      await loadProfiles()
-      setIsDialogOpen(false)
-      return
     }
 
     // Create auth user + profile

@@ -10,6 +10,7 @@ Changes:
 - Add `deleted boolean not null default false` to both tables.
 - Add indexes on `deleted` for query performance.
 - Update application queries to filter with `deleted.is.null OR deleted = false` for backward compatibility with older rows.
+- Add admin RPC: `public.admin_update_user_email_by_id(uuid, text)` to allow admins to change auth and profile emails consistently.
 
 Query patterns:
 - Products: `.or('deleted.is.null,deleted.eq.false')`
