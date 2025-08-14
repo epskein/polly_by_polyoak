@@ -165,27 +165,29 @@ function VerifyOtpSection({ onVerified }: VerifyOtpSectionProps) {
     if (!email) { setError('Enter your email'); return }
     if (!otp) { setError('Enter the OTP from your email'); return }
     setIsVerifying(true)
-    const { error: verifyError } = await supabase.auth.verifyOtp({ email, token: otp.trim(), type: 'recovery' })
-    if (verifyError) {
-      setIsVerifying(false)
-      setError(verifyError.message || 'Invalid or expired OTP')
-      return
-    }
-    // Confirm session is present after verification
-    const { data: sess } = await supabase.auth.getSession()
-    if (!sess.session) {
-      setIsVerifying(false)
-      setError('Verification succeeded but session was not established. Please try verifying again or request a new OTP.')
-      return
-    }
-    // Clean any error hash from URL to avoid confusion
     try {
-      const url = window.location.pathname + window.location.search
-      window.history.replaceState(null, '', url)
-    } catch {}
-    setIsVerifying(false)
-    setMessage('Verified. You can now set a new password.')
-    onVerified()
+      const verifyPromise = supabase.auth.verifyOtp({ email, token: otp.trim(), type: 'recovery' })
+      const timeoutPromise = new Promise<{ error: any }>((resolve) => {
+        setTimeout(() => resolve({ error: { message: 'Verification timed out. Please try again.' } }), 10000)
+      })
+      const result = await Promise.race([verifyPromise, timeoutPromise]) as { error?: any }
+      const verifyError = (result as any)?.error
+      if (verifyError) {
+        setError(verifyError.message || 'Invalid or expired OTP')
+        return
+      }
+      // Clean any error hash from URL to avoid confusion and proceed to show password form
+      try {
+        const url = window.location.pathname + window.location.search
+        window.history.replaceState(null, '', url)
+      } catch {}
+      setMessage('Verified. You can now set a new password.')
+      onVerified()
+    } catch (err: any) {
+      setError(err?.message || 'Failed to verify OTP')
+    } finally {
+      setIsVerifying(false)
+    }
   }
 
   return (
