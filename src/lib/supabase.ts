@@ -1,5 +1,4 @@
 import { createClient } from "@supabase/supabase-js"
-import type { Database } from "../types/database.types"
 
 // It's recommended to use a .env.local file to store these values
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
@@ -9,10 +8,10 @@ if (!supabaseUrl || !supabaseAnonKey) {
   console.error("Supabase URL and anonymous key are required. Make sure to set them in your .env.local file.")
 }
 
-export const supabase = createClient<Database>(supabaseUrl, supabaseAnonKey, {
+export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   auth: {
-    // Setting persistSession to true to keep the user logged in across page refreshes.
-    persistSession: true,
+    // Do not persist sessions. Users should always see the sign-in screen on fresh loads.
+    persistSession: false,
     autoRefreshToken: true,
     detectSessionInUrl: true,
   },

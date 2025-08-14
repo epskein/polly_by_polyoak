@@ -1,11 +1,10 @@
 "use client"
-
-import type React from "react"
 import { useState, useEffect } from "react"
 import { Link, useNavigate, useLocation } from "react-router-dom"
 import { useAuth } from "../../context/AuthContext"
 import Label from "../form/Label"
 import Input from "../form/input/InputField"
+import { Input as UiInput } from "../ui/input/Input"
 
 export default function SignInForm() {
   const [email, setEmail] = useState("")
@@ -15,24 +14,33 @@ export default function SignInForm() {
   const navigate = useNavigate()
   const location = useLocation()
   const { signIn, user } = useAuth()
+  const [resetNotice, setResetNotice] = useState<string | null>(null)
   
   // Redirect if already authenticated
   useEffect(() => {
+    // If redirected from password reset, do not auto-redirect even if a session is momentarily present
+    const qs = new URLSearchParams(location.search)
+    if (qs.get('reset') === '1') return
     // If user is logged in, redirect them.
     // The `from` property will exist if they were redirected from a protected route.
     if (user) {
       const from = location.state?.from?.pathname || "/"
       navigate(from, { replace: true })
     }
-  }, [user, navigate, location.state])
+  }, [user, navigate, location.state, location.search])
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
+  // Show a one-off success notice after password reset
+  useEffect(() => {
+    const qs = new URLSearchParams(location.search)
+    if (qs.get('reset') === '1') setResetNotice('Your password was updated. Please sign in.')
+  }, [location.search])
+
+  async function handleSignIn() {
     setError(null)
     setLoading(true)
 
     try {
-      const { error: signInError } = await signIn(email, password)
+      const { error: signInError } = await signIn(email.trim(), password)
       if (signInError) {
         setError(signInError.message || "Failed to sign in. Please check your credentials.")
       }
@@ -54,7 +62,10 @@ export default function SignInForm() {
           <p className="mt-2 text-sm text-blue-500">If you don't have an account, please contact your administrator.</p>
         </div>
 
-        <form onSubmit={handleSubmit}>
+        <form onSubmit={(e) => e.preventDefault()}>
+          {resetNotice && (
+            <div className="mb-5 p-3 text-sm text-green-600 bg-green-50 rounded-lg">{resetNotice}</div>
+          )}
           <div className="mb-5">
             <Label htmlFor="email">Email</Label>
             <Input
@@ -68,12 +79,18 @@ export default function SignInForm() {
 
           <div className="mb-5">
             <Label htmlFor="password">Password</Label>
-            <Input
+            <UiInput
               type="password"
               id="password"
               placeholder="Enter your password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' && !loading) {
+                  e.preventDefault()
+                  void handleSignIn()
+                }
+              }}
             />
           </div>
 
@@ -85,7 +102,8 @@ export default function SignInForm() {
 
           <div className="mb-5">
             <button
-              type="submit"
+              type="button"
+              onClick={() => void handleSignIn()}
               disabled={loading}
               className="flex w-full justify-center rounded-lg bg-brand-500 px-4 py-3 text-sm font-medium text-white transition hover:bg-brand-600 disabled:opacity-70"
             >

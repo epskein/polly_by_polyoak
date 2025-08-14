@@ -72,9 +72,9 @@ export const AuthService = {
 
   resetPassword: async (email: string) => {
     try {
-      const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: `${window.location.origin}/reset-password`,
-      })
+      // Ensure we include a full redirect URL that will preserve tokens and route user correctly.
+      const redirectUrl = `${window.location.origin}/reset-password`
+      const { error } = await supabase.auth.resetPasswordForEmail(email, { redirectTo: redirectUrl })
       if (error) throw error
       return { error: null }
     } catch (error) {

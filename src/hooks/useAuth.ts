@@ -66,21 +66,18 @@ export function useAuthImplementation() {
   useEffect(() => {
     // This effect runs once on mount to get the initial session and set up the listener.
     const getInitialSession = async () => {
+      // With persistSession disabled, treat fresh loads as signed out
       const { data: { session: initialSession } } = await supabase.auth.getSession();
-      
-      // If a session is found, fetch the profile
       if (initialSession) {
         setUser(initialSession.user);
         setSession(initialSession);
         await fetchProfile(initialSession.user);
       }
-      
-      // IMPORTANT: Set loading to false only after the initial check is complete.
       setLoading(false);
 
       // Set up the auth state change listener
       const { data: { subscription } } = supabase.auth.onAuthStateChange(
-        async (event, newSession) => {
+        async (_event, newSession) => {
           // When auth state changes, update the user, session, and profile.
           setUser(newSession?.user ?? null);
           setSession(newSession);
@@ -107,14 +104,8 @@ export function useAuthImplementation() {
 
 
   const signIn = async (email: string, password: string) => {
-    setLoading(true)
-    try {
-      return await supabase.auth.signInWithPassword({ email, password })
-    } finally {
-       // The onAuthStateChange listener will handle setting user/profile state.
-       // We'll set loading to false here to ensure responsiveness if the listener is slow.
-       setLoading(false)
-    }
+    // Do not toggle global loading here to avoid unmounting the current route while form handles its own state
+    return await supabase.auth.signInWithPassword({ email, password })
   }
 
   const signOut = async () => {

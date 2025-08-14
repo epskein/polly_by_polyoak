@@ -1,5 +1,4 @@
-import { useEffect, useMemo, useState } from "react"
-import { useNavigate } from "react-router-dom"
+import { useEffect, useState } from "react"
 import AuthLayout from "./AuthPageLayout"
 import { AuthService } from "../../services/auth.service"
 import Label from "../../components/form/Label"
@@ -7,7 +6,15 @@ import Input from "../../components/form/input/InputField"
 import { supabase } from "../../lib/supabase"
 
 export default function ResetPassword() {
-  const navigate = useNavigate()
+  // Proactively clear any error hash fragments from the URL since we now use manual OTP
+  useEffect(() => {
+    try {
+      if (window.location.hash && window.location.hash.includes('error=')) {
+        const url = window.location.pathname + window.location.search
+        window.history.replaceState(null, '', url)
+      }
+    } catch {}
+  }, [])
   const [password, setPassword] = useState("")
   const [confirmPassword, setConfirmPassword] = useState("")
   const [error, setError] = useState<string | null>(null)
@@ -15,47 +22,15 @@ export default function ResetPassword() {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [isSessionReady, setIsSessionReady] = useState(false)
 
-  // If the recovery link lands anywhere with the hash, we keep it on this route
-  // so the Supabase client can read tokens from the URL if needed.
-  const hash = useMemo(() => window.location.hash, [])
-
+  // Manual OTP verification flow is used. The password form is shown only after OTP verification creates a session.
+  // If success is set, show confirmation and redirect shortly after, irrespective of session changes.
   useEffect(() => {
-    // Attempt to establish a session from URL parameters when arriving via recovery link
-    async function establishSessionFromUrl() {
-      try {
-        // First, handle code param (PKCE) style
-        const search = new URLSearchParams(window.location.search)
-        const code = search.get('code')
-        if (code) {
-          const { data, error } = await supabase.auth.exchangeCodeForSession(code)
-          if (error) throw error
-          setIsSessionReady(Boolean(data?.session))
-          return
-        }
-
-        // Fallback: handle hash fragment tokens style
-        const hashParams = new URLSearchParams(window.location.hash.replace('#', ''))
-        const isRecovery = hashParams.get('type') === 'recovery'
-        const access_token = hashParams.get('access_token') || undefined
-        const refresh_token = hashParams.get('refresh_token') || undefined
-        if (isRecovery && access_token && refresh_token) {
-          const { data, error } = await supabase.auth.setSession({ access_token, refresh_token })
-          if (error) throw error
-          setIsSessionReady(Boolean(data?.session))
-          return
-        }
-
-        // If we get here, check if a session is already present (user might already be signed in)
-        const { data: sess } = await supabase.auth.getSession()
-        setIsSessionReady(Boolean(sess.session))
-      } catch (e) {
-        console.error('[ResetPassword] Failed to establish session from URL:', e)
-        setIsSessionReady(false)
-      }
-    }
-
-    void establishSessionFromUrl()
-  }, [hash])
+    if (!success) return
+    const timer = setTimeout(() => {
+      try { window.location.replace("/auth/signin?reset=1") } catch {}
+    }, 800)
+    return () => clearTimeout(timer)
+  }, [success])
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -73,22 +48,27 @@ export default function ResetPassword() {
 
     setIsSubmitting(true)
 
-    // Ensure we have a recovery session before attempting to update password
-    if (!isSessionReady) {
+    // Ensure we have a recovery session from OTP verification before attempting to update password
+    const { data: sess } = await supabase.auth.getSession()
+    if (!sess.session) {
       setIsSubmitting(false)
-      setError("Recovery session not established. Please use the password reset link sent to your email again.")
+      setError("Session not established after OTP verification. Please verify the OTP again or request a new code.")
       return
     }
-    const { error: updateError } = await AuthService.updatePassword(password)
-    setIsSubmitting(false)
-
-    if (updateError) {
-      setError(updateError.message || "Failed to set new password")
-      return
+    try {
+      const { error: updateError } = await supabase.auth.updateUser({ password })
+      if (updateError) {
+        setError(updateError.message || "Failed to set new password")
+        return
+      }
+      // Show confirmation and unblock UI; redirect is handled by success-effect above
+      setSuccess("Your password has been updated. Redirecting to sign in…")
+      setIsSubmitting(false)
+    } catch (err: any) {
+      setError(err?.message || "Failed to set new password")
+    } finally {
+      setIsSubmitting(false)
     }
-
-    setSuccess("Your password has been updated. You can now sign in.")
-    setTimeout(() => navigate("/auth/signin", { replace: true }), 1200)
   }
 
   return (
@@ -101,6 +81,13 @@ export default function ResetPassword() {
               <p className="text-gray-500 dark:text-gray-400">Enter and confirm your new password</p>
             </div>
 
+            {!isSessionReady && (
+              <div className="mb-6">
+                <VerifyOtpSection onVerified={() => setIsSessionReady(true)} />
+              </div>
+            )}
+
+            {isSessionReady && (
             <form onSubmit={handleSubmit}>
               <div className="mb-5">
                 <Label htmlFor="new-password">New password</Label>
@@ -134,17 +121,153 @@ export default function ResetPassword() {
               <div className="mb-5">
                 <button
                   type="submit"
-                  disabled={isSubmitting || !isSessionReady}
+                  disabled={isSubmitting}
                   className="flex w-full justify-center rounded-lg bg-brand-500 px-4 py-3 text-sm font-medium text-white transition hover:bg-brand-600 disabled:opacity-70"
                 >
-                  {isSubmitting ? "Saving..." : (!isSessionReady ? "Waiting for recovery session..." : "Save new password")}
+                  {isSubmitting ? "Saving..." : "Save new password"}
                 </button>
               </div>
             </form>
+            )}
+
+            {!isSessionReady && (
+              <div className="mt-4 space-y-3">
+                <div className="text-center text-xs text-gray-500">— or —</div>
+                <div className="text-center">
+                  <ResendResetLink />
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </AuthLayout>
     </>
+  )
+}
+
+interface VerifyOtpSectionProps {
+  onVerified: () => void
+}
+
+function VerifyOtpSection({ onVerified }: VerifyOtpSectionProps) {
+  const [email, setEmail] = useState<string>(() => {
+    try { return localStorage.getItem('polly-reset-email') || '' } catch { return '' }
+  })
+  const [otp, setOtp] = useState('')
+  const [isVerifying, setIsVerifying] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const [message, setMessage] = useState<string | null>(null)
+
+  async function onVerify(e: React.FormEvent) {
+    e.preventDefault()
+    setError(null)
+    setMessage(null)
+    if (!email) { setError('Enter your email'); return }
+    if (!otp) { setError('Enter the OTP from your email'); return }
+    setIsVerifying(true)
+    const { error: verifyError } = await supabase.auth.verifyOtp({ email, token: otp.trim(), type: 'recovery' })
+    if (verifyError) {
+      setIsVerifying(false)
+      setError(verifyError.message || 'Invalid or expired OTP')
+      return
+    }
+    // Confirm session is present after verification
+    const { data: sess } = await supabase.auth.getSession()
+    if (!sess.session) {
+      setIsVerifying(false)
+      setError('Verification succeeded but session was not established. Please try verifying again or request a new OTP.')
+      return
+    }
+    // Clean any error hash from URL to avoid confusion
+    try {
+      const url = window.location.pathname + window.location.search
+      window.history.replaceState(null, '', url)
+    } catch {}
+    setIsVerifying(false)
+    setMessage('Verified. You can now set a new password.')
+    onVerified()
+  }
+
+  return (
+    <form onSubmit={onVerify} className="space-y-3">
+      <div className="text-sm font-medium text-gray-800 dark:text-gray-100">Verify OTP</div>
+      <div className="flex gap-2">
+        <input
+          type="email"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          placeholder="your@email.com"
+          className="flex-1 rounded-md border border-gray-300 px-3 py-2 text-sm dark:bg-gray-800 dark:border-gray-700"
+        />
+        <input
+          type="text"
+          value={otp}
+          onChange={(e) => setOtp(e.target.value)}
+          placeholder="6-digit OTP"
+          className="w-36 rounded-md border border-gray-300 px-3 py-2 text-sm tracking-widest text-center dark:bg-gray-800 dark:border-gray-700"
+        />
+        <button
+          type="submit"
+          disabled={isVerifying}
+          className="rounded-md bg-brand-500 px-3 py-2 text-sm text-white hover:bg-brand-600 disabled:opacity-60"
+        >
+          {isVerifying ? 'Verifying...' : 'Verify'}
+        </button>
+      </div>
+      {error && <div className="text-xs text-red-500">{error}</div>}
+      {message && <div className="text-xs text-green-600">{message}</div>}
+    </form>
+  )
+}
+
+function ResendResetLink() {
+  const [email, setEmail] = useState<string>(() => {
+    try { return localStorage.getItem('polly-reset-email') || '' } catch { return '' }
+  })
+  const [message, setMessage] = useState<string | null>(null)
+  const [error, setError] = useState<string | null>(null)
+  const [isSending, setIsSending] = useState(false)
+
+  async function onResend(e: React.FormEvent) {
+    e.preventDefault()
+    setMessage(null)
+    setError(null)
+    if (!email) {
+      setError('Enter your email to resend the link')
+      return
+    }
+    setIsSending(true)
+    const { error: resetError } = await AuthService.resetPassword(email)
+    setIsSending(false)
+    if (resetError) {
+      setError((resetError as any)?.message || 'Failed to resend link')
+      return
+    }
+    setMessage('A new reset link has been sent if the email exists.')
+  }
+
+  return (
+    <form onSubmit={onResend} className="space-y-2">
+      <div className="text-xs text-gray-600 dark:text-gray-300">Having trouble? Resend a new link:</div>
+      <div className="flex gap-2">
+        <input
+          type="email"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          placeholder="your@email.com"
+          className="flex-1 rounded-md border border-gray-300 px-3 py-2 text-sm dark:bg-gray-800 dark:border-gray-700"
+        />
+        <button
+          type="submit"
+          disabled={isSending}
+          className="rounded-md bg-gray-800 px-3 py-2 text-sm text-white hover:bg-gray-900 disabled:opacity-60"
+        >
+          {isSending ? 'Sending...' : 'Resend link'}
+        </button>
+      </div>
+      {error && <div className="text-xs text-red-500">{error}</div>}
+      {message && <div className="text-xs text-green-600">{message}</div>}
+    </form>
   )
 }
 

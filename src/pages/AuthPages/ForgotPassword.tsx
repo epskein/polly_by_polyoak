@@ -29,6 +29,9 @@ export default function ForgotPassword() {
       return
     }
 
+    // Persist the email locally to allow the reset page to offer a quick resend if the link is consumed by scanners.
+    try { localStorage.setItem('polly-reset-email', email) } catch {}
+
     setSuccess("If an account exists for this email, a reset link has been sent.")
   }
 

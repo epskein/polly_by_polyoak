@@ -1,3 +1,7 @@
+## Prompt History
+
+- 2025-08-14: Debug and resolve issue where reset-password screen button never activates and shows "Waiting for Recovery session".
+
 # All Prompt History
 
 ## 2024-07-31
